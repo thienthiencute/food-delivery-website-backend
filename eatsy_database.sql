@@ -1,12 +1,14 @@
 -- Create database
 CREATE DATABASE eatsy_food;
 SHOW DATABASES;
+USE eatsy_food;
 
 -- User authorization
-CREATE USER 'nooba'@'localhost' IDENTIFIED BY 'noobanecon';
-GRANT ALL PRIVILEGES ON eatsy_food.* TO 'nooba'@'localhost';
-SHOW GRANTS FOR CURRENT_USER;
-FLUSH PRIVILEGES;
+-- CREATE USER 'eatsy_user'@'localhost' IDENTIFIED BY '123';
+-- GRANT ALL PRIVILEGES ON eatsy_food.* TO 'eatsy_user'@'localhost';
+-- SHOW GRANTS FOR CURRENT_USER;
+-- FLUSH PRIVILEGES;
+
 
 -- Create Users table
 CREATE TABLE Users (
@@ -16,7 +18,7 @@ CREATE TABLE Users (
     gender ENUM('Male', 'Female', 'Other'),
     date_of_birth DATE,
     password CHAR(255) NOT NULL,
-	username CHAR(255),
+	username VARCHAR(255),
     type_login ENUM('Standard', 'Google', 'Facebook', 'Apple') NOT NULL,
 	email CHAR(255) UNIQUE,
 	phone_number CHAR(20) UNIQUE NOT NULL,
@@ -34,7 +36,7 @@ CREATE TABLE Users (
 CREATE TABLE Customers (
 	customer_id CHAR(255) PRIMARY KEY,
     user_id CHAR(255),
-    loyal_points INT CHECK (loyal_points >= 0) DEFAULT 0,
+    loyal_points INT UNSIGNED DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES Users(user_id)
 );
 
@@ -51,19 +53,21 @@ CREATE TABLE Categories (
 CREATE TABLE Dishes (
     dish_id CHAR(255) PRIMARY KEY,
     category_id CHAR(255),
-	thumbnail_path VARCHAR(1000) NOT NULL,
-    name CHAR(255) NOT NULL,
+    thumbnail_path VARCHAR(1000) NOT NULL,
+    name VARCHAR(255) NOT NULL,
     description TEXT,
     price DECIMAL(10, 2) NOT NULL,
     available BOOLEAN DEFAULT TRUE,
-    points DECIMAL(2, 1) NOT NULL CHECK (points >= 0 AND points <= 5) DEFAULT 0,
-    rate_quantity INT CHECK (rate_quantity >= 0) DEFAULT 0,
-    discount_amount DECIMAL(5, 2) NOT NULL CHECK (discount_amount >= 0)  DEFAULT 0,
-	created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    update_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    points DECIMAL(2,1) NOT NULL DEFAULT 0,
+    rate_quantity INT UNSIGNED DEFAULT 0,
+    discount_amount DECIMAL(5,2) UNSIGNED NOT NULL DEFAULT 0,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
     FOREIGN KEY (category_id) REFERENCES Categories(category_id) ON DELETE CASCADE
 );
-
 -- Create OTP table
 CREATE TABLE OTP (
     otp_id CHAR(255) PRIMARY KEY, 
@@ -185,7 +189,7 @@ CREATE TABLE UserVoucher (
 -- ------------------------ TRIGGERS -------------------------------
 -- ! Run this in Admin(root) to turn on privilege
 
-SET GLOBAL log_bin_trust_function_creators = 1;
+-- SET GLOBAL log_bin_trust_function_creators = 1;
 
 DELIMITER $$
 
@@ -251,11 +255,12 @@ BEGIN
 END$$
 
 -- Auto generate Dishes Id
+
 CREATE TRIGGER insert_dishes_id_trigger
 BEFORE INSERT ON Dishes
 FOR EACH ROW
 BEGIN
-    IF NEW.dish_id IS NULL THEN
+    IF NEW.dish_id IS NULL OR NEW.dish_id = '' THEN
         SET NEW.dish_id = UUID();
     END IF;
 END$$
@@ -291,36 +296,49 @@ BEGIN
 END$$
 
 -- Auto generate Reviews Id
+
+
 CREATE TRIGGER insert_reviews_id_trigger
 BEFORE INSERT ON Reviews
 FOR EACH ROW
 BEGIN
-    IF NEW.review_id IS NULL THEN
+    IF NEW.review_id IS NULL OR NEW.review_id = '' THEN
         SET NEW.review_id = UUID();
     END IF;
 END$$
 
+
+
 -- Auto generate Users Id
+
+
 CREATE TRIGGER insert_users_id_trigger
 BEFORE INSERT ON Users
 FOR EACH ROW
 BEGIN
-    IF NEW.user_id IS NULL THEN
+    IF NEW.user_id IS NULL OR NEW.user_id = '' THEN
         SET NEW.user_id = UUID();
     END IF;
 END$$
 
+
 -- Auto generate Vouchers Id
+
+
+
 CREATE TRIGGER insert_vouchers_id_trigger
 BEFORE INSERT ON Vouchers
 FOR EACH ROW
 BEGIN
-	IF NEW.voucher_id IS NULL THEN
+    IF NEW.voucher_id IS NULL OR NEW.voucher_id = '' THEN
         SET NEW.voucher_id = UUID();
     END IF;
 END$$
 
+
+
 DELIMITER ;
+
 -- ---------------- DATAS -------------------------------
 INSERT INTO Categories (name, description)
 VALUES
