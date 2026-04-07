@@ -1,13 +1,13 @@
+require("dotenv").config();
 const express = require("express");
-const dotenv = require("dotenv");
-
-dotenv.config();
 
 const routes = require("@routes/index");
 const useMiddlewares = require("@middlewares/index");
 const { connectToDatabase } = require("@config/sequelize");
 
 const app = express();
+
+app.use(express.json());
 
 // using middlewares
 useMiddlewares(app);

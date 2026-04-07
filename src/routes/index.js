@@ -9,7 +9,7 @@ const { authAdminMiddleware, authMiddleware } = require("@middlewares/authMiddle
 const routes = (app) => {
     app.use("/api/dish", authMiddleware, dishRouter);
     app.use("/api/user", authMiddleware, usersRouter);
-    app.use("/auth", authRouter);
+    app.use("/api/auth", authRouter);
     app.use("/api/cart", authMiddleware, cartRouter);
     app.use("/api/voucher", authMiddleware, voucherRouter);
     app.use("/api/category", authMiddleware, categoryRouter);
