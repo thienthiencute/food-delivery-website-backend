@@ -66,7 +66,7 @@ const dishModel = sequelize.define(
             type: DataTypes.DATE,
             defaultValue: DataTypes.NOW,
         },
-        update_at: {
+        updated_at: {
             type: DataTypes.DATE,
             defaultValue: DataTypes.NOW,
             onUpdate: DataTypes.NOW,
