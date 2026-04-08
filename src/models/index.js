@@ -14,27 +14,33 @@ const voucherModel = require("@models/voucherModel");
 const otpModel = require("@models/otpModel");
 const reviewModel = require("@models/reviewModel");
 const accountVoucher = require("@models/userVoucher");
+const addressModel = require("@models/addressModel");
 
 sequelize
-    .sync()
-    .then(() => {
-        console.log("\n\nTables have been created\n\n");
-    })
-    .catch((error) => console.log("\n\nThis error occurred", error + "\n\n"));
+  .sync()
+  .then(() => {
+    console.log("\n\nTables have been created\n\n");
+  })
+  .catch((error) => console.log("\n\nThis error occurred", error + "\n\n"));
 
 module.exports = {
-    userModel,
-    cartItemModel,
-    orderItemModel,
-    orderModel,
-    otpModel,
-    reviewModel,
-    dishModel,
-    cartModel,
-    categoryModel,
-    customerModel,
-    invoiceItemModel,
-    invoiceModel,
-    voucherModel,
-    accountVoucher,
+  userModel,
+  cartItemModel,
+  orderItemModel,
+  orderModel,
+  otpModel,
+  reviewModel,
+  dishModel,
+  cartModel,
+  categoryModel,
+  customerModel,
+  invoiceItemModel,
+  invoiceModel,
+  voucherModel,
+  accountVoucher,
+  addressModel,
 };
+
+// Define associations after all models loaded
+userModel.hasMany(addressModel, { foreignKey: "user_id", as: "addresses" });
+addressModel.belongsTo(userModel, { foreignKey: "user_id" });

@@ -40,6 +40,50 @@ CREATE TABLE Customers (
     FOREIGN KEY (user_id) REFERENCES Users(user_id)
 );
 
+-- Add is_default to Users.address (legacy support)
+ALTER TABLE Users ADD COLUMN address_is_default BOOLEAN DEFAULT FALSE;
+
+-- Create Addresses table for multiple addresses management
+CREATE TABLE Addresses (
+    address_id CHAR(255) PRIMARY KEY,
+    user_id CHAR(255) NOT NULL,
+    street VARCHAR(500) NOT NULL,
+    city VARCHAR(255) NOT NULL,
+    state VARCHAR(255),
+    zip_code VARCHAR(20),
+    country VARCHAR(100) DEFAULT 'Vietnam',
+    label VARCHAR(100) DEFAULT 'Home',
+    is_default BOOLEAN DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+    INDEX idx_user_default (user_id, is_default)
+);
+
+-- Trigger for Addresses UUID
+DELIMITER $$
+CREATE TRIGGER insert_addresses_id_trigger
+BEFORE INSERT ON Addresses
+FOR EACH ROW
+BEGIN
+    IF NEW.address_id IS NULL OR NEW.address_id = '' THEN
+        SET NEW.address_id = UUID();
+    END IF;
+END$$
+DELIMITER ;
+
+-- Ensure only one default address per user
+DELIMITER $$
+CREATE TRIGGER ensure_one_default_address
+BEFORE UPDATE ON Addresses
+FOR EACH ROW
+BEGIN
+    IF NEW.is_default = TRUE AND OLD.is_default = FALSE THEN
+        UPDATE Addresses SET is_default = FALSE WHERE user_id = NEW.user_id AND address_id != NEW.address_id;
+    END IF;
+END$$
+DELIMITER ;
+
 -- Create Categories Table
 CREATE TABLE Categories (
     category_id CHAR(255) PRIMARY KEY, 
