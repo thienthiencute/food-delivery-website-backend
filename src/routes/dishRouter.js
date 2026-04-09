@@ -5,5 +5,5 @@ const dishController = require("@controllers/dishController");
 
 // * Dishes
 router.get("/", dishController.getDishes);
-
+router.get("/:id", dishController.getDishById);
 module.exports = router;
