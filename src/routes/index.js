@@ -4,10 +4,12 @@ const dishRouter = require("./dishRouter");
 const cartRouter = require("./cartRouter");
 const voucherRouter = require("./voucherRouter");
 const categoryRouter = require("./categoryRouter");
+const uploadRoute = require("./upload");
 const { authAdminMiddleware, authMiddleware } = require("@middlewares/authMiddleware");
 
 const routes = (app) => {
     app.use("/api/dish",  dishRouter);
+    app.use("/api/upload", uploadRoute);
     app.use("/api/user", authMiddleware, usersRouter);
     app.use("/api/auth", authRouter);
     app.use("/api/cart", authMiddleware, cartRouter);
