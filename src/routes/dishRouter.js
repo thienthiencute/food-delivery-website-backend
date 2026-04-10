@@ -3,8 +3,107 @@ const router = express.Router();
 
 const dishController = require("@controllers/dishController");
 
-// * Dishes
+/**
+ * @swagger
+ * /api/dish:
+ *   get:
+ *     summary: Get all dishes
+ *     tags:
+ *       - Dishes
+ *     parameters:
+ *       - in: query
+ *         name: category_id
+ *         schema:
+ *           type: integer
+ *         description: Filter by category ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Items per page
+ *     responses:
+ *       200:
+ *         description: List of dishes retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Dish'
+ *                 total:
+ *                   type: integer
+ */
 router.get("/", dishController.getDishes);
+
+/**
+ * @swagger
+ * /api/dish/{id}:
+ *   get:
+ *     summary: Get dish by ID
+ *     tags:
+ *       - Dishes
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Dish ID
+ *     responses:
+ *       200:
+ *         description: Dish retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Dish'
+ *       404:
+ *         description: Dish not found
+ */
 router.get("/:id", dishController.getDishById);
+
+/**
+ * @swagger
+ * /api/dish/similar/{id}:
+ *   get:
+ *     summary: Get similar dishes
+ *     tags:
+ *       - Dishes
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Dish ID
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 5
+ *         description: Number of similar dishes to return
+ *     responses:
+ *       200:
+ *         description: Similar dishes retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Dish'
+ *       404:
+ *         description: Dish not found
+ */
 router.get("/similar/:id", dishController.getSimilarDishes);
 module.exports = router;
