@@ -6,22 +6,22 @@ const userController = require("@controllers/userController");
 const upload = require("@config/multer");
 const { authMiddleware } = require("../middlewares/authMiddleware");
 // Profile routes
-router.get("/profile", authMiddleware, userController.getProfile);
+router.get("/api/profile", authMiddleware, userController.getProfile);
 router.put(
-  "/profile",
+  "/api/profile",
   authMiddleware,
   upload.single("avatar"),
   userController.updateProfile,
 );
-router.put("/password", authMiddleware, userController.changePassword);
+router.put("/api/password", authMiddleware, userController.changePassword);
 
 // Addresses routes
-router.get("/addresses", authMiddleware, userController.getAddresses);
-router.post("/addresses", authMiddleware, userController.addAddress);
-router.put("/addresses/:id", authMiddleware, userController.updateAddress);
+router.get("/api/addresses", authMiddleware, userController.getAddresses);
+router.post("/api/addresses", authMiddleware, userController.addAddress);
+router.put("/api/addresses/:id", authMiddleware, userController.updateAddress);
 router.delete("/addresses/:id", authMiddleware, userController.deleteAddress);
 router.put(
-  "/addresses/:id/default",
+  "/api/addresses/:id/default",
   authMiddleware,
   userController.setDefaultAddress,
 );

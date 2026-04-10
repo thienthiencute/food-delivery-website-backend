@@ -4,7 +4,7 @@ const router = express.Router();
 const dishController = require("@controllers/dishController");
 
 // * Dishes
-router.get("/", dishController.getDishes);
-router.get("/:id", dishController.getDishById);
-router.get("/similar/:id", dishController.getSimilarDishes);
+router.get("/api/", dishController.getDishes);
+router.get("/api/:id", dishController.getDishById);
+router.get("/api/similar/:id", dishController.getSimilarDishes);
 module.exports = router;

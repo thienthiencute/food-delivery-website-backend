@@ -6,11 +6,11 @@ const authController = require("@controllers/authController");
 const { authMiddleware } = require("@middlewares/authMiddleware");
 
 // GET
-router.get("/", authMiddleware, (req, res) => {
+router.get("/api/", authMiddleware, (req, res) => {
     res.json({ success: true, message: "Request authenticated and processed!" });
 });
 router.get(
-    "/google",
+    "/api/google",
     (req, res, next) => {
         const { memorizedLogin } = req.query;
         res.cookie("memorizedLogin", memorizedLogin);
@@ -22,14 +22,14 @@ router.get(
     }),
 );
 router.get(
-    "/google/redirect",
+    "/api/google/redirect",
     passport.authenticate("google", {
         successRedirect: `${process.env.CLIENT_URL}/login/status`,
         failureRedirect: `${process.env.CLIENT_URL}/login/status`,
     }),
 );
 router.get(
-    "/facebook",
+    "/api/facebook",
     (req, res, next) => {
         const { memorizedLogin } = req.query;
         res.cookie("memorizedLogin", memorizedLogin);
@@ -41,22 +41,22 @@ router.get(
     }),
 );
 router.get(
-    "/facebook/redirect",
+    "/api/facebook/redirect",
     passport.authenticate("facebook", {
         successRedirect: `${process.env.CLIENT_URL}/login/status`,
         failureRedirect: `${process.env.CLIENT_URL}/login/status`,
     }),
 );
-router.get("/login-status", authController.loginStatus);
+router.get("/api/login-status", authController.loginStatus);
 
 // POST
-router.post("/send-otp", authController.sendOTP);
-router.post("/verify-otp", authController.verifyOTP);
-router.post("/login-user", authController.loginUser);
-router.post("/register-user", authController.registerUser);
-router.post("/logout-user", authController.loginStatus);
-router.post("/forgot-password/send-otp", authController.forgotPasswordSendOTP);
-router.post("/forgot-password/verify-otp", authController.forgotPasswordVerifyOTP);
-router.post("/forgot-password/reset-password", authController.resetPassword);
+router.post("/api/send-otp", authController.sendOTP);
+router.post("/api/verify-otp", authController.verifyOTP);
+router.post("/api/login-user", authController.loginUser);
+router.post("/api/register-user", authController.registerUser);
+router.post("/api/logout-user", authController.loginStatus);
+router.post("/api/forgot-password/send-otp", authController.forgotPasswordSendOTP);
+router.post("/api/forgot-password/verify-otp", authController.forgotPasswordVerifyOTP);
+router.post("/api/forgot-password/reset-password", authController.resetPassword);
 
 module.exports = router;
