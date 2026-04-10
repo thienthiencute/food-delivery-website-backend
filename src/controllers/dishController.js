@@ -59,6 +59,40 @@ class dishController {
       });
     }
   }
+  async getSimilarDishes(req, res) {
+    try {
+      const { id } = req.params;
+
+      // 1. Lấy dish hiện tại
+      const currentDish = await dishModel.findOne({
+        where: { dish_id: id },
+      });
+
+      if (!currentDish) {
+        return res.status(404).json({
+          message: "Dish not found",
+        });
+      }
+
+      // 2. Lấy các dish cùng category (trừ chính nó)
+      const similarDishes = await dishModel.findAll({
+        where: {
+          category_id: currentDish.category_id,
+          dish_id: {
+            [Op.ne]: id,
+          },
+        },
+        limit: 8,
+      });
+
+      return res.status(200).json(similarDishes);
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({
+        message: "Internal server error",
+      });
+    }
+  }
 }
 
 module.exports = new dishController();
