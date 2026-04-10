@@ -1,4 +1,5 @@
 -- Create database
+DROP DATABASE IF EXISTS eatsy_food;
 CREATE DATABASE eatsy_food;
 SHOW DATABASES;
 USE eatsy_food;
@@ -11,27 +12,28 @@ USE eatsy_food;
 
 
 -- Create Users table
+
 CREATE TABLE Users (
-    user_id CHAR(255) PRIMARY KEY,
-    fullname CHAR(255),
-    address CHAR(255),
+    user_id CHAR(36) PRIMARY KEY,
+    fullname VARCHAR(255),
+    address VARCHAR(255),
     gender ENUM('Male', 'Female', 'Other'),
     date_of_birth DATE,
-    password CHAR(255) NOT NULL,
-	username VARCHAR(255),
+    password VARCHAR(255) NOT NULL,
+    username VARCHAR(255),
     type_login ENUM('Standard', 'Google', 'Facebook', 'Apple') NOT NULL,
-	email CHAR(255) UNIQUE,
-	phone_number CHAR(20) UNIQUE NOT NULL,
-	country_code CHAR(10) NOT NULL,
-	role ENUM('Admin', 'Customer', 'Owner', 'Employee') DEFAULT 'Customer',
+    email VARCHAR(255) UNIQUE,
+    phone_number VARCHAR(20) UNIQUE NOT NULL,
+    country_code VARCHAR(10) NOT NULL,
+    role ENUM('Admin', 'Customer', 'Owner', 'Employee') DEFAULT 'Customer',
     avatar_path VARCHAR(1000),
     payment_method ENUM('Credit Card', 'Momo', 'Zalo Pay', 'Bank Transfer', 'Cash') DEFAULT 'Cash',
-	created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-	updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-	last_login DATETIME NULL,
-	is_online BOOLEAN DEFAULT TRUE
+    address_is_default BOOLEAN DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    last_login DATETIME NULL,
+    is_online BOOLEAN DEFAULT TRUE
 );
-
 -- Create Customer table
 CREATE TABLE Customers (
 	customer_id CHAR(255) PRIMARY KEY,
@@ -40,13 +42,12 @@ CREATE TABLE Customers (
     FOREIGN KEY (user_id) REFERENCES Users(user_id)
 );
 
--- Add is_default to Users.address (legacy support)
-ALTER TABLE Users ADD COLUMN address_is_default BOOLEAN DEFAULT FALSE;
+
 
 -- Create Addresses table for multiple addresses management
 CREATE TABLE Addresses (
-    address_id CHAR(255) PRIMARY KEY,
-    user_id CHAR(255) NOT NULL,
+    address_id CHAR(36) PRIMARY KEY,
+    user_id CHAR(36) NOT NULL,
     street VARCHAR(500) NOT NULL,
     city VARCHAR(255) NOT NULL,
     state VARCHAR(255),
@@ -60,29 +61,6 @@ CREATE TABLE Addresses (
     INDEX idx_user_default (user_id, is_default)
 );
 
--- Trigger for Addresses UUID
-DELIMITER $$
-CREATE TRIGGER insert_addresses_id_trigger
-BEFORE INSERT ON Addresses
-FOR EACH ROW
-BEGIN
-    IF NEW.address_id IS NULL OR NEW.address_id = '' THEN
-        SET NEW.address_id = UUID();
-    END IF;
-END$$
-DELIMITER ;
-
--- Ensure only one default address per user
-DELIMITER $$
-CREATE TRIGGER ensure_one_default_address
-BEFORE UPDATE ON Addresses
-FOR EACH ROW
-BEGIN
-    IF NEW.is_default = TRUE AND OLD.is_default = FALSE THEN
-        UPDATE Addresses SET is_default = FALSE WHERE user_id = NEW.user_id AND address_id != NEW.address_id;
-    END IF;
-END$$
-DELIMITER ;
 
 -- Create Categories Table
 CREATE TABLE Categories (
@@ -236,7 +214,25 @@ CREATE TABLE UserVoucher (
 -- SET GLOBAL log_bin_trust_function_creators = 1;
 
 DELIMITER $$
+-- Trigger for Addresses UUID
+CREATE TRIGGER insert_addresses_id_trigger
+BEFORE INSERT ON Addresses
+FOR EACH ROW
+BEGIN
+    IF NEW.address_id IS NULL OR NEW.address_id = '' THEN
+        SET NEW.address_id = UUID();
+    END IF;
+END$$
 
+-- Ensure only one default address per user
+CREATE TRIGGER ensure_one_default_address
+BEFORE UPDATE ON Addresses
+FOR EACH ROW
+BEGIN
+    IF NEW.is_default = TRUE AND OLD.is_default = FALSE THEN
+        UPDATE Addresses SET is_default = FALSE WHERE user_id = NEW.user_id AND address_id != NEW.address_id;
+    END IF;
+END$$
 -- Auto generate Categories Id
 CREATE TRIGGER insert_categories_id_trigger
 BEFORE INSERT ON Categories
@@ -405,20 +401,20 @@ SELECT category_id INTO @OffersCategoryId FROM Categories WHERE name = 'Ưu đã
 INSERT INTO Dishes (category_id, thumbnail_path, name, description, price)
 VALUES
 -- Burgers
-(@BurgersCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292387/burger-american-jr_wncyni.jpg', 'American Trio Charcoal Burger ( Size M )', 'Burger với 3 loại xốt mới và vỏ bánh than tre thủ công', 79000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292387/burger-american-jr_wncyni.jpg', 'American Trio Charcoal Burger ( Size L )', 'Burger với 3 loại xốt mới và vỏ bánh than tre thủ công', 129000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292387/cheese-ring-burger_1_vwgabl.jpg', 'CHEESE RING BURGER', 'Burger bò nướng Whopper ( cỡ vừa )', 55000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292387/6-burger-ca_ghd7se.jpg', 'FISH BURGER', 'Burger Cá giòn', 49000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292387/12-burger-b_-n_ng-h_nh-chi_n_4_t12rs1_t12rs1.jpg', 'GRILLED ONION BURGER', 'Grilled Onion Burger', 49000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292387/cheese-ring-burger_1_vwgabl.jpg', 'EXTREME CHEESE BURGER JR', 'Burger bò tắm phô mai ( cỡ vừa )', 65000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292387/cheese-ring-burger_1_vwgabl.jpg', 'EXTREME CHEESE BURGER JR', 'Burger bò tắm phô mai ( cỡ lớn )', 125000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292387/11-burger-b_-th_t-heo-x_ng-kh_i_1_wcfirm_wcfirm.jpg', 'BBQ CHIC''N CRISP CHEESE BURGER', 'Burger gà giòn phô mai sốt BBQ', 49000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292387/burger_ga_pho_mai_so_t_bbq_knei3t.jpg', 'BBQ CHIC''N CRISP CHEESE BURGER', 'Burger gà giòn phô mai sốt BBQ', 49000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292387/2-mieng-b_-burger-b_-n_ng-whopper_3_hq1dfk_hq1dfk.jpg', 'DOUBLE WHOPPER', 'DOUBLE WHOPPER', 175000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292387/2-mieng-b_-burger-b_-n_ng-whopper_3_hq1dfk_hq1dfk.jpg', 'WHOPPER', 'Burger bò nướng Whopper ( cỡ lớn )', 125000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292387/16-burger-b_-n_ng-whopper_1_t0udlw_t0udlw_t0udlw_t0udlw.jpg', 'WHOPPER', 'Burger bò nướng Whopper ( cỡ vừa )', 125000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292387/2-mieng-bo-burger-b_-ph_-mai_1_ohxwgo_ohxwgo.jpg', 'DOUBLE CHEESEBURGER', 'Burger 2 miếng bò nướng phô mai', 79000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292387/dbl-bbq-bc-chz_lw2din.jpg', 'DOUBLE BBQ BACON CHEESE', 'Burger 2 miếng bò nướng phô mai thịt xông khói', 105000),
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802062/ex_cheese_whp_jr_1_av3n9m.jpg', 'American Trio Charcoal Burger ( Size M )', 'Burger với 3 loại xốt mới và vỏ bánh than tre thủ công', 79000),
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802061/dbl-bbq-bc-chz_mkhjpv.jpg', 'American Trio Charcoal Burger ( Size L )', 'Burger với 3 loại xốt mới và vỏ bánh than tre thủ công', 129000),
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802059/16-burger-b_-n_ng-whopper_1_uhyh8v.jpg', 'CHEESE RING BURGER', 'Burger bò nướng Whopper ( cỡ vừa )', 55000),
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802059/12-burger-b_-n_ng-h_nh-chi_n_4_nkn25c.jpg', 'FISH BURGER', 'Burger Cá giòn', 49000),
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802060/burger-american-jr_uvzewn.jpg', 'GRILLED ONION BURGER', 'Grilled Onion Burger', 49000),
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802058/6-burger-ca_x5c3qq.jpg', 'EXTREME CHEESE BURGER JR', 'Burger bò tắm phô mai ( cỡ vừa )', 65000),
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802058/6-burger-ca_x5c3qq.jpg', 'EXTREME CHEESE BURGER JR', 'Burger bò tắm phô mai ( cỡ lớn )', 125000),
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802060/burger-american-jr_uvzewn.jpg', 'BBQ CHIC''N CRISP CHEESE BURGER', 'Burger gà giòn phô mai sốt BBQ', 49000),
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802057/2-mieng-b_-burger-b_-n_ng-whopper_3_eqkc20.jpg', 'BBQ CHIC''N CRISP CHEESE BURGER', 'Burger gà giòn phô mai sốt BBQ', 49000),
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802057/2-mieng-b_-burger-b_-n_ng-whopper_3_eqkc20.jpg', 'DOUBLE WHOPPER', 'DOUBLE WHOPPER', 175000),
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802057/2-mieng-b_-burger-b_-n_ng-whopper_3_eqkc20.jpg', 'WHOPPER', 'Burger bò nướng Whopper ( cỡ lớn )', 125000),
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802057/2-mieng-b_-burger-b_-n_ng-whopper_3_eqkc20.jpg', 'WHOPPER', 'Burger bò nướng Whopper ( cỡ vừa )', 125000),
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802057/2-mieng-b_-burger-b_-n_ng-whopper_3_eqkc20.jpg', 'DOUBLE CHEESEBURGER', 'Burger 2 miếng bò nướng phô mai', 79000),
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802057/2-mieng-b_-burger-b_-n_ng-whopper_3_eqkc20.jpg', 'DOUBLE BBQ BACON CHEESE', 'Burger 2 miếng bò nướng phô mai thịt xông khói', 105000),
 -- Pizza
 (@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292400/viber_image_2024-12-20_11-11-37-302_ezuu5p.jpg', 'Pizza Siêu Topping Siêu Topping Hải Sản 4 Mùa', '12 inches', 355000),
 (@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292400/viber_image_2024-12-20_11-11-35-787_caryzj.jpg', 'Pizza Siêu Topping Hải Sản Xốt Pesto "Chanh Sả"', '9 inches', 235000),
@@ -430,9 +426,9 @@ VALUES
 (@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292398/Pizzaminsea-Hai-San-Nhiet-Doi-Xot-Tieu_hceiql.jpg', 'Pizza Siêu Topping Xúc Xích Ý Truyền Thống', '9 inches', 235000),
 (@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292398/Pizza-Thap-Cam-Thuong-Hang-Extravaganza_xgntsx.jpg', 'Pizza Hải Sản 4 Mùa', '9 inches', 325000),
 (@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292397/Pizza-Pho-Mai-Hao-Hang-Cheese-Mania_qcjkj2.jpg', 'Pizza Hải Sản Xốt Kim Quất', '9 inches', 215000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292397/Pizza-Hai-San-Xot-Mayonnaise-Ocean-Mania_i5kdbk.jpg', 'Pizza Hải Sản Xốt Vải', '9 inches', 215000),
+(@PizzaCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802486/PC-MB1000X667px_NEW_1_o7jlse.jpg', 'Pizza Hải Sản Xốt Vải', '9 inches', 215000),
 (@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292397/Pizza-Hai-San-Xot-Ca-Chua-Seafood-Delight_xupcfa.jpg', 'Pizza Hải Sản Xốt Pesto "Chanh Sả"', '9 inches', 215000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292397/Pizza-Hai-San-Xot-Mayonnaise-Ocean-Mania_i5kdbk.jpg', 'Pizza Hải Sản Xốt Mayonnaise', '9 inches', 205000),
+(@PizzaCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802486/PC-MB1000X667px_NEW_1_o7jlse.jpg', 'Pizza Hải Sản Xốt Mayonnaise', '9 inches', 205000),
 (@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292397/Pizza-Hai-San-Xot-Ca-Chua-Seafood-Delight_xupcfa.jpg', 'Pizza Bò & Tôm Nướng Kiểu Mỹ', '9 inches', 205000),
 (@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292396/Pizza-Dam-Bong-Dua-Kieu-Hawaii-Hawaiian_hxanox.jpg', 'Pizza Hải Sản Xốt Cà Chua', '9 inches', 205000),
 (@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292396/Pizza_Extra_Topping_5_cuthg4.jpg', 'Pizza Hải Sản Nhiệt Đới Xốt Tiêu', '9 inches', 205000),
@@ -441,7 +437,7 @@ VALUES
 (@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292396/Pizza_Extra_Topping_4_tmjlja.jpg', 'Pizza New York Bò Beefsteak Phô Mai', '9 inches', 215000),
 (@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292396/Pizza_Extra_Topping_3_iv0mug.jpg', 'Pizza Thập Cẩm Thượng Hạng', '9 inches', 215000),
 (@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292396/Pizza_Extra_Topping_2_w4vrxn.jpg', 'Pizza Ngập Vị Phô Mai Hảo Hạng', '9 inches', 175000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292395/PCMB1000X667px_super_topping_2x_qktbs3.png', 'Pizza Rau Củ Thập Cẩm', '9 inches', 155000),
+(@PizzaCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802492/Pizza-Dam-Bong-Dua-Kieu-Hawaii-Hawaiian_scftcs.jpg', 'Pizza Rau Củ Thập Cẩm', '9 inches', 155000),
 (@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292395/Pizza_Extra_Topping_1_tvweih.jpg', 'Pizza 5 Loại Thịt Thượng Hạng', '9 inches', 205000),
 (@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292395/Pepperoni-feast-Pizza-Xuc-Xich-Y_y0yohh.jpg', 'Pizza Xúc Xích Ý Truyền Thống', '9 inches', 205000),
 (@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292394/PC-MB1000X667px_NEW_1_g54jcl.png', 'Pizza Dăm Bông Dứa Kiểu Hawaii', '9 inches', 175000),
@@ -460,22 +456,22 @@ VALUES
 -- Drinks
 (@DrinksCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292391/Milohop_y8q3k6.webp', 'Milo', '', 25000),
 (@DrinksCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292391/Dasani_mbfjso.webp', 'Nước suối Dasani', '', 15000),
-(@DrinksCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292392/Coca.webp', 'Coca Cola', '', 15000),
+(@DrinksCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802123/Cocazero_fvx0tc.webp', 'Coca Cola', '', 15000),
 (@DrinksCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292392/Sprite_jjvq7d.webp', 'Sprite', '', 15000),
 (@DrinksCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292391/Fanta_xt4cov.webp', 'Fanta', '', 15000),
 (@DrinksCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292391/Cocazero_ulbdug.webp', 'Coca Cola Zero', '', 15000),
 -- Combos
-(@CombosCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292390/combo-doublewhopper_2.jpg', 'COMBO DOUBLE WHOPPER JR.', '1 Burger 2 miếng bò nướng ( cỡ vừa ) + Khoai chiên (M) + 1 Đồ uống', 95000),
-(@CombosCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292390/combo-whopper-lover-new.jpg', 'COMBO WHOPPER LOVER', '1 Burger bò nướng Whopper ( cỡ lớn ) + Khoai chiên (S) + 4 gà cuộn rong biển + 1 Đồ uống', 159000),
-(@CombosCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292390/combo-ex-cheese-whopper-lover-new.jpg', 'COMBO EXTREME CHEESE LOVER', '1 Burger bò tắm phô mai ( cỡ lớn ) + Khoai chiên (S) + 4 gà cuộn rong biển + 1 Đồ uống', 159000),
-(@CombosCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292390/cb-whp-bbq-bc-chz.jpg', 'COMBO WHOPPER BBQ BACON & CHEESE', '1 Burger bò nướng phô mai thịt xông khói + Khoai chiên (M) + 1 Đồ uống', 175000),
-(@CombosCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292390/cb-dbl-whp-bbq-bc-chz.jpg', 'COMBO DOUBLE WHOPPER BBQ BACON AND CHEESE', '1 Burger 2 miếng bò nướng phô mai thịt xông khói ( cỡ lớn ) + Khoai chiên (M) + 1 Đồ uống', 245000),
-(@CombosCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292390/cb-dbl-bbq-bc-chz_lw2din.jpg', 'COMBO DOUBLE BBQ BACON CHEESE', '1 Burger 2 miếng bò nướng phô mai thịt xông khói ( cỡ vừa ) + Khoai chiên (M) + 1 Đồ uống', 135000),
-(@CombosCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292390/m_n_ngon_ph_i_th_-_1.png', 'Combo Một Mình Ăn Ngon', '1 Mì Ý gà rán + 1 Nước ngọt', 78000),
-(@CombosCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292390/m_n_ngon_ph_i_th_-_2_2__1.png', 'Combo Cặp đôi ăn ý', '2 Mì Ý gà rán + 2 Nước ngọt + 1 Khoai tây chiên', 145000),
-(@CombosCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292390/m_n_ngon_ph_i_th_-_3.png', 'Combo Cả Nhà No Nê', '3 Mì Ý gà rán + 3 Nước ngọt + 2 Miếng gà rán + 1 Khoai tây chiên', 185000),
-(@CombosCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292390/m_n_ngon_ph_i_th_-_4_2.png.png', 'Combo Bạn Bè Tụ Tập', '2 Mì Ý gà rán + 2 Cơm gà rán + 4 Nước ngọt + 2 Bánh xoài + 2 Khoai tây chiên', 322000),
-(@CombosCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292390/m_n_ngon_ph_i_th_-_7.png', 'Tiệc Kiểu Mới, Quà Chuẩn Gu', '4 Mì Ý gà rán + 4 Gà rán + 5 Nước ngọt + 4 Khoai tây chiên', 699000);
+(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802112/m_n_ngon_ph_i_th_-_7_y1anbs.png', 'COMBO DOUBLE WHOPPER JR.', '1 Burger 2 miếng bò nướng ( cỡ vừa ) + Khoai chiên (M) + 1 Đồ uống', 95000),
+(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802111/m_n_ngon_ph_i_th_-_4_2_vrch3n.png', 'COMBO WHOPPER LOVER', '1 Burger bò nướng Whopper ( cỡ lớn ) + Khoai chiên (S) + 4 gà cuộn rong biển + 1 Đồ uống', 159000),
+(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802110/m_n_ngon_ph_i_th_-_2_2__1_i2zw3e.png', 'COMBO EXTREME CHEESE LOVER', '1 Burger bò tắm phô mai ( cỡ lớn ) + Khoai chiên (S) + 4 gà cuộn rong biển + 1 Đồ uống', 159000),
+(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802108/combo-ex-cheese-whopper-lover-new_bttzx0.jpg', 'COMBO WHOPPER BBQ BACON & CHEESE', '1 Burger bò nướng phô mai thịt xông khói + Khoai chiên (M) + 1 Đồ uống', 175000),
+(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802108/combo-ex-cheese-whopper-lover-new_bttzx0.jpg', 'COMBO DOUBLE WHOPPER BBQ BACON AND CHEESE', '1 Burger 2 miếng bò nướng phô mai thịt xông khói ( cỡ lớn ) + Khoai chiên (M) + 1 Đồ uống', 245000),
+(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802108/combo-ex-cheese-whopper-lover-new_bttzx0.jpg', 'COMBO DOUBLE BBQ BACON CHEESE', '1 Burger 2 miếng bò nướng phô mai thịt xông khói ( cỡ vừa ) + Khoai chiên (M) + 1 Đồ uống', 135000),
+(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802107/cb-whp-bbq-bc-chz_gaw7zv.jpg', 'Combo Một Mình Ăn Ngon', '1 Mì Ý gà rán + 1 Nước ngọt', 78000),
+(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802107/combo-doublewhopper_2_uqqe8q.jpg', 'Combo Cặp đôi ăn ý', '2 Mì Ý gà rán + 2 Nước ngọt + 1 Khoai tây chiên', 145000),
+(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802107/combo-doublewhopper_2_uqqe8q.jpg', 'Combo Cả Nhà No Nê', '3 Mì Ý gà rán + 3 Nước ngọt + 2 Miếng gà rán + 1 Khoai tây chiên', 185000),
+(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802107/combo-doublewhopper_2_uqqe8q.jpg', 'Combo Bạn Bè Tụ Tập', '2 Mì Ý gà rán + 2 Cơm gà rán + 4 Nước ngọt + 2 Bánh xoài + 2 Khoai tây chiên', 322000),
+(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802112/m_n_ngon_ph_i_th_-_7_y1anbs.png', 'Tiệc Kiểu Mới, Quà Chuẩn Gu', '4 Mì Ý gà rán + 4 Gà rán + 5 Nước ngọt + 4 Khoai tây chiên', 699000);
 
 INSERT INTO Vouchers (code, description, discount_type, discount_value, valid_from, valid_to, min_purchase, number_of_uses)
 VALUES
