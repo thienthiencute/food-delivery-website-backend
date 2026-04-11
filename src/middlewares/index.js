@@ -31,7 +31,7 @@ const useMiddlewares = (app) => {
                 secure: process.env.NODE_ENV === "production",
                 httpOnly: true, // prevent Javascript accession
                 maxAge: Number.parseInt(process.env.COOKIE_MAX_AGE_1H),
-                sameSite: "Strict", // prevent CSRF attack
+                sameSite: "Lax", // prevent CSRF attack
                 path: "/",
             },
         }),
