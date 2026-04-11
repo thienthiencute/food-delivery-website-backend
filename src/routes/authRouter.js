@@ -33,7 +33,7 @@ router.get("/", authMiddleware, (req, res) => {
 
 /**
  * @swagger
- * /api/auth/google:
+ * /google:
  *   get:
  *     summary: Google OAuth login
  *     tags:
@@ -48,7 +48,7 @@ router.get("/", authMiddleware, (req, res) => {
  *         description: Redirect to Google OAuth
  */
 router.get(
-    "/api/google",
+    "/google",
     (req, res, next) => {
         const { memorizedLogin } = req.query;
         res.cookie("memorizedLogin", memorizedLogin);
@@ -62,17 +62,17 @@ router.get(
 
 /**
  * @swagger
- * /api/auth/google/redirect:
+ * /google/redirect:
  *   get:
  *     summary: Google OAuth callback
  *     tags:
  *       - Authentication
  *     responses:
  *       302:
- *         description: Redirect to client login status
+ *         description: Redirect to client with JWT token
  */
 router.get(
-    "/api/google/redirect",
+    "/google/redirect",
     passport.authenticate("google", {
         successRedirect: `${process.env.CLIENT_URL}/login/status`,
         failureRedirect: `${process.env.CLIENT_URL}/login/status`,
@@ -96,7 +96,7 @@ router.get(
  *         description: Redirect to Facebook OAuth
  */
 router.get(
-    "/api/facebook",
+    "/facebook",
     (req, res, next) => {
         const { memorizedLogin } = req.query;
         res.cookie("memorizedLogin", memorizedLogin);
@@ -120,7 +120,7 @@ router.get(
  *         description: Redirect to client login status
  */
 router.get(
-    "/api/facebook/redirect",
+    "/facebook/redirect",
     passport.authenticate("facebook", {
         successRedirect: `${process.env.CLIENT_URL}/login/status`,
         failureRedirect: `${process.env.CLIENT_URL}/login/status`,

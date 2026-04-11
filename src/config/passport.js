@@ -1,6 +1,7 @@
 const LocalStrategy = require("passport-local").Strategy;
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const FacebookStrategy = require("passport-facebook").Strategy;
+const { v4: uuidv4 } = require("uuid");
 
 const { getUser, compareData, hashData } = require("@helpers/validationHelper");
 const { userModel } = require("@models/index");
@@ -85,7 +86,7 @@ const usePassportGoogleStrategy = (passport) => {
                             type_login: "Google",
                             password: "*",
                             country_code: "*",
-                            phone_number: "*",
+                            phone_number: uuidv4().substring(0, 20),
                         },
                     });
 
@@ -146,7 +147,7 @@ const usePassportFacebookStrategy = (passport) => {
                             type_login: "Facebook",
                             password: "*",
                             country_code: "*",
-                            phone_number: "*",
+                            phone_number: uuidv4().substring(0, 20),
                         },
                     });
 
