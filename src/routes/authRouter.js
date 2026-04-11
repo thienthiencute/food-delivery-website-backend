@@ -48,7 +48,7 @@ router.get("/", authMiddleware, (req, res) => {
  *         description: Redirect to Google OAuth
  */
 router.get(
-    "/google",
+    "/api/google",
     (req, res, next) => {
         const { memorizedLogin } = req.query;
         res.cookie("memorizedLogin", memorizedLogin);
@@ -72,7 +72,7 @@ router.get(
  *         description: Redirect to client login status
  */
 router.get(
-    "/google/redirect",
+    "/api/google/redirect",
     passport.authenticate("google", {
         successRedirect: `${process.env.CLIENT_URL}/login/status`,
         failureRedirect: `${process.env.CLIENT_URL}/login/status`,
@@ -96,7 +96,7 @@ router.get(
  *         description: Redirect to Facebook OAuth
  */
 router.get(
-    "/facebook",
+    "/api/facebook",
     (req, res, next) => {
         const { memorizedLogin } = req.query;
         res.cookie("memorizedLogin", memorizedLogin);
@@ -120,7 +120,7 @@ router.get(
  *         description: Redirect to client login status
  */
 router.get(
-    "/facebook/redirect",
+    "/api/facebook/redirect",
     passport.authenticate("facebook", {
         successRedirect: `${process.env.CLIENT_URL}/login/status`,
         failureRedirect: `${process.env.CLIENT_URL}/login/status`,
@@ -289,7 +289,7 @@ router.post("/register-user", authController.registerUser);
  *       200:
  *         description: Logout successful
  */
-router.post("/logout-user", authController.loginStatus);
+router.post("/logout-user", authController.logoutUser);
 
 /**
  * @swagger

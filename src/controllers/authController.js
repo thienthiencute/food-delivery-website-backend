@@ -361,6 +361,17 @@ class authController {
       .status(200)
       .json({ success: true, message: "Change password successfully" });
   }
+
+  async logoutUser(req, res) {
+    try {
+      res.clearCookie("token");
+      res.clearCookie("memorizedLogin");
+      return res.status(200).json({ success: true, message: "Logged out successfully" });
+    } catch (error) {
+      console.log("LOGOUT ERROR:", error);
+      return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+  }
 }
 
 module.exports = new authController();
