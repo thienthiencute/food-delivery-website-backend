@@ -289,7 +289,7 @@ router.post("/register-user", authController.registerUser);
  *       200:
  *         description: Logout successful
  */
-router.post("/logout-user", authController.loginStatus);
+router.post("/logout-user", authController.logoutUser);
 
 /**
  * @swagger
