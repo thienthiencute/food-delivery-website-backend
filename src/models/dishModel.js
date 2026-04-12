@@ -17,50 +17,78 @@ const dishModel = sequelize.define(
             },
             onDelete: "CASCADE",
         },
-        thumbnail_path: {
-            type: DataTypes.STRING(1000),
-            allowNull: false,
-        },
         name: {
             type: DataTypes.STRING(255),
             allowNull: false,
+        },
+        slug: {
+            type: DataTypes.STRING(255),
+            allowNull: false,
+            unique: true,
         },
         description: {
             type: DataTypes.TEXT,
             allowNull: true,
         },
+        thumbnail_path: {
+            type: DataTypes.STRING(1000),
+            allowNull: false,
+        },
         price: {
             type: DataTypes.DECIMAL(10, 2),
             allowNull: false,
         },
-        available: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: true,
-        },
-        points: {
-            type: DataTypes.DECIMAL(2, 1),
+        discount_amount: {
+            type: DataTypes.DECIMAL(5, 2),
             allowNull: false,
+            defaultValue: 0,
+        },
+        stock: {
+            type: DataTypes.INTEGER,
+            defaultValue: 0,
+        },
+        sold_count: {
+            type: DataTypes.INTEGER,
+            defaultValue: 0,
+        },
+        rating_avg: {
+            type: DataTypes.DECIMAL(2, 1),
             defaultValue: 0,
             validate: {
                 min: 0,
                 max: 5,
             },
         },
-        rate_quantity: {
+        rating_count: {
             type: DataTypes.INTEGER,
-            allowNull: false,
             defaultValue: 0,
             validate: {
                 min: 0,
             },
         },
-        discount_amount: {
-            type: DataTypes.DECIMAL(5, 2),
-            allowNull: false,
-            defaultValue: 0,
-            validate: {
-                min: 0,
-            },
+        available: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: true,
+        },
+        is_featured: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false,
+        },
+        status: {
+            type: DataTypes.ENUM('draft', 'active', 'inactive'),
+            defaultValue: 'active',
+        },
+        preparation_time: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+        },
+        calories: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+        },
+        tags: {
+            type: DataTypes.JSON,
+            allowNull: true,
         },
         created_at: {
             type: DataTypes.DATE,

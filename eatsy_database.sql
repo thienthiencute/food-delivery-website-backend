@@ -10,13 +10,19 @@ USE eatsy_food;
 -- SHOW GRANTS FOR CURRENT_USER;
 -- FLUSH PRIVILEGES;
 
+-- Create PaymentMethods table
+CREATE TABLE PaymentMethods (
+    payment_method_id INT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 
 -- Create Users table
-
 CREATE TABLE Users (
     user_id CHAR(36) PRIMARY KEY,
     fullname VARCHAR(255),
-    address VARCHAR(255),
     gender ENUM('Male', 'Female', 'Other'),
     date_of_birth DATE,
     password VARCHAR(255) NOT NULL,
@@ -27,36 +33,42 @@ CREATE TABLE Users (
     country_code VARCHAR(10) NOT NULL,
     role ENUM('Admin', 'Customer', 'Owner', 'Employee') DEFAULT 'Customer',
     avatar_path VARCHAR(1000),
-    payment_method ENUM('Credit Card', 'Momo', 'Zalo Pay', 'Bank Transfer', 'Cash') DEFAULT 'Cash',
-    address_is_default BOOLEAN DEFAULT FALSE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     last_login DATETIME NULL,
-    is_online BOOLEAN DEFAULT TRUE
+    is_online BOOLEAN DEFAULT TRUE,
+    payment_method_id INT,
+FOREIGN KEY (payment_method_id) REFERENCES PaymentMethods(payment_method_id)
 );
 -- Create Customer table
 CREATE TABLE Customers (
-	customer_id CHAR(255) PRIMARY KEY,
-    user_id CHAR(255),
+    customer_id CHAR(36) PRIMARY KEY,
+    user_id CHAR(36),
     loyal_points INT UNSIGNED DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES Users(user_id)
 );
-
-
 
 -- Create Addresses table for multiple addresses management
 CREATE TABLE Addresses (
     address_id CHAR(36) PRIMARY KEY,
     user_id CHAR(36) NOT NULL,
+
     street VARCHAR(500) NOT NULL,
+    ward VARCHAR(255),
+    district VARCHAR(255),
     city VARCHAR(255) NOT NULL,
-    state VARCHAR(255),
     zip_code VARCHAR(20),
     country VARCHAR(100) DEFAULT 'Vietnam',
-    label VARCHAR(100) DEFAULT 'Home',
+
+    label ENUM('Home', 'Work', 'Other') DEFAULT 'Home',
     is_default BOOLEAN DEFAULT FALSE,
+
+    latitude DECIMAL(10,8),
+    longitude DECIMAL(11,8),
+
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
     INDEX idx_user_default (user_id, is_default)
 );
@@ -64,7 +76,7 @@ CREATE TABLE Addresses (
 
 -- Create Categories Table
 CREATE TABLE Categories (
-    category_id CHAR(255) PRIMARY KEY, 
+    category_id CHAR(36) PRIMARY KEY, 
     name VARCHAR(255) NOT NULL UNIQUE, 
     description TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
@@ -74,10 +86,10 @@ CREATE TABLE Categories (
 -- Create Dishes table
 CREATE TABLE Dishes (
     dish_id CHAR(36) PRIMARY KEY,
-    category_id CHAR(255),
+    category_id CHAR(36),
     -- Basic info
     name VARCHAR(255) NOT NULL,
-    slug VARCHAR(255) UNIQUE,
+    slug VARCHAR(255) UNIQUE NOT NULL,
     description TEXT,
     -- Media
     thumbnail_path VARCHAR(1000) NOT NULL,
@@ -88,9 +100,8 @@ CREATE TABLE Dishes (
     stock INT DEFAULT 0,
     sold_count INT DEFAULT 0,
     -- Rating
-    points DECIMAL(2,1) NOT NULL DEFAULT 0,
-    rate_quantity INT UNSIGNED DEFAULT 0,
     rating_avg DECIMAL(2,1) DEFAULT 0,
+rating_count INT DEFAULT 0,
     -- Flags
     available BOOLEAN DEFAULT TRUE,
     is_featured BOOLEAN DEFAULT FALSE,
@@ -105,9 +116,36 @@ CREATE TABLE Dishes (
 
     FOREIGN KEY (category_id) REFERENCES Categories(category_id) ON DELETE CASCADE
 );
+CREATE TABLE DishImages (
+    image_id CHAR(36) PRIMARY KEY,
+    dish_id CHAR(36),
+    image_url VARCHAR(1000),
+    is_thumbnail BOOLEAN DEFAULT FALSE,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (dish_id) REFERENCES Dishes(dish_id) ON DELETE CASCADE
+);
+CREATE TABLE DishVariants (
+    variant_id CHAR(36) PRIMARY KEY,
+    dish_id CHAR(36),
+
+    name VARCHAR(100), 
+    price DECIMAL(10,2),
+    stock INT DEFAULT 0,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (dish_id) REFERENCES Dishes(dish_id) ON DELETE CASCADE
+);
+CREATE TABLE DishAddons (
+    addon_id CHAR(36) PRIMARY KEY,
+    name VARCHAR(255),
+    price DECIMAL(10,2)
+);
 -- Create OTP table
 CREATE TABLE OTP (
-    otp_id CHAR(255) PRIMARY KEY, 
+    otp_id CHAR(36) PRIMARY KEY, 
     info VARCHAR(255) NOT NULL,
     country_code CHAR(10),
     otp VARCHAR(6) NOT NULL, 
@@ -117,9 +155,9 @@ CREATE TABLE OTP (
 
 -- Create Reviews table
 CREATE TABLE Reviews (
-    review_id CHAR(255) PRIMARY KEY,
-    user_id CHAR(255),
-    dish_id CHAR(255),
+    review_id CHAR(36) PRIMARY KEY,
+    user_id CHAR(36),
+    dish_id CHAR(36),
     points DECIMAL(2, 1) NOT NULL CHECK (points >= 0 AND points <=5),
     content TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
@@ -130,16 +168,16 @@ CREATE TABLE Reviews (
 
 -- Create Carts table
 CREATE TABLE Carts (
-	cart_id CHAR(255) PRIMARY KEY,
-    user_id CHAR(255) UNIQUE,
+    cart_id CHAR(36) PRIMARY KEY,
+    user_id CHAR(36) UNIQUE,
     FOREIGN KEY (user_id) REFERENCES Users(user_id)
-); 
+);
 
 -- Create Cart Items table
 CREATE TABLE CartItems (
-	cart_item_id CHAR(255) PRIMARY KEY,
-	dish_id CHAR(255),
-    cart_id CHAR(255),
+	cart_item_id CHAR(36) PRIMARY KEY,
+	dish_id CHAR(36),
+    cart_id CHAR(36),
     quantity INT NOT NULL CHECK (quantity >= 0),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -149,21 +187,19 @@ CREATE TABLE CartItems (
 
 -- Create Orders table
 CREATE TABLE Orders (
-    order_id CHAR(255) PRIMARY KEY,
-	user_id CHAR(255),
-	quantity INT NOT NULL,
-	foods TEXT NOT NULL,
-	order_note TEXT,
-    order_status CHAR(20) NOT NULL CHECK (order_status IN ('Pending', 'In Progress', 'Completed', 'Cancelled')),
+    order_id CHAR(36) PRIMARY KEY,
+    user_id CHAR(36),
+    order_note TEXT,
+    order_status ENUM('Pending', 'In Progress', 'Completed', 'Cancelled') NOT NULL,
     order_date DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES Users(user_id)
 );
 
 -- Create Order Items table
 CREATE TABLE OrderItems (
-    order_item_id CHAR(255) PRIMARY KEY,
-    order_id CHAR(255),
-    dish_id CHAR(255),
+    order_item_id CHAR(36) PRIMARY KEY,
+    order_id CHAR(36),
+    dish_id CHAR(36),
     quantity INT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -173,25 +209,26 @@ CREATE TABLE OrderItems (
 
 -- Create Invoices table
 CREATE TABLE Invoices (
-    invoice_id CHAR(255) PRIMARY KEY,
-    customer_id CHAR(255) NOT NULL, 
-    employee_id CHAR(255) NOT NULL,
+    invoice_id CHAR(36) PRIMARY KEY,
+    customer_id CHAR(36) NOT NULL, 
+    employee_id CHAR(36) NOT NULL,
+    payment_method_id INT NOT NULL,
     shipping_fee DECIMAL(10, 2) NOT NULL,
     discount_amount DECIMAL(10, 2) NOT NULL,
     total_amount DECIMAL(10, 2) NOT NULL,
-    payment_method ENUM('Credit Card', 'Momo', 'Zalo Pay', 'Bank Transfer', 'Cash') DEFAULT 'Cash',
     status ENUM('Paid', 'Pending', 'Cancelled') DEFAULT 'Pending',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
     FOREIGN KEY (customer_id) REFERENCES Customers(customer_id) ON DELETE CASCADE,
-    FOREIGN KEY (employee_id) REFERENCES Users(user_id) ON DELETE CASCADE
+    FOREIGN KEY (employee_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (payment_method_id) REFERENCES PaymentMethods(payment_method_id)
 );
 
 -- Create Invoice Items table
 CREATE TABLE InvoiceItems (
-    invoice_item_id CHAR(255) PRIMARY KEY, 
-    invoice_id CHAR(255) NOT NULL, 
-    dish_id CHAR(255) NOT NULL, 
+    invoice_item_id CHAR(36) PRIMARY KEY, 
+    invoice_id CHAR(36) NOT NULL, 
+    dish_id CHAR(36) NOT NULL, 
     quantity INT NOT NULL DEFAULT 1 CHECK (quantity > 0), 
     price DECIMAL(10, 2) NOT NULL, 
     FOREIGN KEY (invoice_id) REFERENCES Invoices(invoice_id) ON DELETE CASCADE,
@@ -200,7 +237,7 @@ CREATE TABLE InvoiceItems (
 
 -- Create Vouchers table
 CREATE TABLE Vouchers (
-    voucher_id CHAR(255) PRIMARY KEY,
+    voucher_id CHAR(36) PRIMARY KEY,
     code VARCHAR(50) UNIQUE NOT NULL,
     description TEXT,
     discount_type ENUM('Percentage', 'Amount') NOT NULL, 
@@ -208,8 +245,8 @@ CREATE TABLE Vouchers (
     valid_from DATETIME NOT NULL,
     valid_to DATETIME NOT NULL,
     min_purchase DECIMAL(10, 2) DEFAULT 0,
-    number_of_uses INT DEFAULT 0 CHECK (number_of_uses > 0),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    number_of_uses INT DEFAULT 1 CHECK (number_of_uses >= 0),
+created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
@@ -229,6 +266,7 @@ CREATE TABLE UserVoucher (
 -- SET GLOBAL log_bin_trust_function_creators = 1;
 
 DELIMITER $$
+
 -- Trigger for Addresses UUID
 CREATE TRIGGER insert_addresses_id_trigger
 BEFORE INSERT ON Addresses
@@ -241,13 +279,17 @@ END$$
 
 -- Ensure only one default address per user
 CREATE TRIGGER ensure_one_default_address
-BEFORE UPDATE ON Addresses
+AFTER INSERT ON Addresses
 FOR EACH ROW
 BEGIN
-    IF NEW.is_default = TRUE AND OLD.is_default = FALSE THEN
-        UPDATE Addresses SET is_default = FALSE WHERE user_id = NEW.user_id AND address_id != NEW.address_id;
+    IF NEW.is_default = TRUE THEN
+        UPDATE Addresses 
+        SET is_default = FALSE 
+        WHERE user_id = NEW.user_id
+        AND address_id <> NEW.address_id;
     END IF;
 END$$
+
 -- Auto generate Categories Id
 CREATE TRIGGER insert_categories_id_trigger
 BEFORE INSERT ON Categories
@@ -363,7 +405,6 @@ BEGIN
 END$$
 
 -- Auto generate Users Id
-
 CREATE TRIGGER insert_users_id_trigger
 BEFORE INSERT ON Users
 FOR EACH ROW
@@ -373,11 +414,7 @@ BEGIN
     END IF;
 END$$
 
-
 -- Auto generate Vouchers Id
-
-
-
 CREATE TRIGGER insert_vouchers_id_trigger
 BEFORE INSERT ON Vouchers
 FOR EACH ROW
@@ -388,10 +425,20 @@ BEGIN
 END$$
 
 
-
 DELIMITER ;
 
--- ---------------- DATAS -------------------------------
+
+/* ---------------- DATAS ------------------------------- */
+
+-- Insert Payment Methods
+INSERT INTO PaymentMethods (name, code) VALUES
+    ('Cash', 'cash'),
+    ('Credit Card', 'credit_card'),
+    ('Momo', 'momo'),
+    ('Zalo Pay', 'zalopay'),
+    ('Bank Transfer', 'bank_transfer');
+
+-- Insert Categories
 INSERT INTO Categories (name, description)
 VALUES
 	('Burgers', 'A variety of burgers including beef, chicken, abd veggie options'),
@@ -410,80 +457,64 @@ SELECT category_id INTO @ComCategoryId FROM Categories WHERE name = 'Cơm';
 SELECT category_id INTO @DrinksCategoryId FROM Categories WHERE name = 'Nước uống';
 SELECT category_id INTO @CombosCategoryId FROM Categories WHERE name = 'Combos';
 SELECT category_id INTO @OffersCategoryId FROM Categories WHERE name = 'Ưu đãi đặc biệt';
-INSERT INTO Dishes (category_id, thumbnail_path, name, description, price)
+
+INSERT INTO Dishes (category_id, thumbnail_path, name, slug, description, price)
 VALUES
 -- Burgers
-(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802062/ex_cheese_whp_jr_1_av3n9m.jpg', 'American Trio Charcoal Burger ( Size M )', 'Burger với 3 loại xốt mới và vỏ bánh than tre thủ công', 79000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802061/dbl-bbq-bc-chz_mkhjpv.jpg', 'American Trio Charcoal Burger ( Size L )', 'Burger với 3 loại xốt mới và vỏ bánh than tre thủ công', 129000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802059/16-burger-b_-n_ng-whopper_1_uhyh8v.jpg', 'CHEESE RING BURGER', 'Burger bò nướng Whopper ( cỡ vừa )', 55000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802059/12-burger-b_-n_ng-h_nh-chi_n_4_nkn25c.jpg', 'FISH BURGER', 'Burger Cá giòn', 49000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802060/burger-american-jr_uvzewn.jpg', 'GRILLED ONION BURGER', 'Grilled Onion Burger', 49000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802058/6-burger-ca_x5c3qq.jpg', 'EXTREME CHEESE BURGER JR', 'Burger bò tắm phô mai ( cỡ vừa )', 65000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802058/6-burger-ca_x5c3qq.jpg', 'EXTREME CHEESE BURGER JR', 'Burger bò tắm phô mai ( cỡ lớn )', 125000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802060/burger-american-jr_uvzewn.jpg', 'BBQ CHIC''N CRISP CHEESE BURGER', 'Burger gà giòn phô mai sốt BBQ', 49000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802057/2-mieng-b_-burger-b_-n_ng-whopper_3_eqkc20.jpg', 'BBQ CHIC''N CRISP CHEESE BURGER', 'Burger gà giòn phô mai sốt BBQ', 49000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802057/2-mieng-b_-burger-b_-n_ng-whopper_3_eqkc20.jpg', 'DOUBLE WHOPPER', 'DOUBLE WHOPPER', 175000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802057/2-mieng-b_-burger-b_-n_ng-whopper_3_eqkc20.jpg', 'WHOPPER', 'Burger bò nướng Whopper ( cỡ lớn )', 125000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802057/2-mieng-b_-burger-b_-n_ng-whopper_3_eqkc20.jpg', 'WHOPPER', 'Burger bò nướng Whopper ( cỡ vừa )', 125000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802057/2-mieng-b_-burger-b_-n_ng-whopper_3_eqkc20.jpg', 'DOUBLE CHEESEBURGER', 'Burger 2 miếng bò nướng phô mai', 79000),
-(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802057/2-mieng-b_-burger-b_-n_ng-whopper_3_eqkc20.jpg', 'DOUBLE BBQ BACON CHEESE', 'Burger 2 miếng bò nướng phô mai thịt xông khói', 105000),
--- Pizza
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292400/viber_image_2024-12-20_11-11-37-302_ezuu5p.jpg', 'Pizza Siêu Topping Siêu Topping Hải Sản 4 Mùa', '12 inches', 355000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292400/viber_image_2024-12-20_11-11-35-787_caryzj.jpg', 'Pizza Siêu Topping Hải Sản Xốt Pesto "Chanh Sả"', '9 inches', 235000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292399/viber_image_2024-12-20_10-48-58-179_y1hogs.jpg', 'Pizza Siêu Topping Bơ Gơ Bò Mỹ Xốt Phô Mai Ngập Vị', '9 inches', 235000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292399/viber_image_2024-12-20_09-38-36-347_rzg84u.jpg', 'Pizza Siêu Topping Hải Sản Xốt Mayonnaise', '9 inches', 235000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292399/viber_image_2024-12-20_09-38-34-546_j75pfu.jpg', 'Pizza Siêu Topping Hải Sản Nhiệt Đới Xốt Tiêu', '9 inches', 235000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292398/Veggie-mania-Pizza-Rau-Cu-Thap-Cam_txn7kk.jpg', 'Pizza Siêu Topping Bò Và Tôm Nướng Kiểu Mỹ', '9 inches', 235000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292398/Surf-turf-Pizza-Bo-Tom-Nuong-Kieu-My-1_aipebt.jpg', 'Pizza Siêu Topping Dăm Bông Dứa Kiểu Hawaiian', '9 inches', 235000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292398/Pizzaminsea-Hai-San-Nhiet-Doi-Xot-Tieu_hceiql.jpg', 'Pizza Siêu Topping Xúc Xích Ý Truyền Thống', '9 inches', 235000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292398/Pizza-Thap-Cam-Thuong-Hang-Extravaganza_xgntsx.jpg', 'Pizza Hải Sản 4 Mùa', '9 inches', 325000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292397/Pizza-Pho-Mai-Hao-Hang-Cheese-Mania_qcjkj2.jpg', 'Pizza Hải Sản Xốt Kim Quất', '9 inches', 215000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802486/PC-MB1000X667px_NEW_1_o7jlse.jpg', 'Pizza Hải Sản Xốt Vải', '9 inches', 215000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292397/Pizza-Hai-San-Xot-Ca-Chua-Seafood-Delight_xupcfa.jpg', 'Pizza Hải Sản Xốt Pesto "Chanh Sả"', '9 inches', 215000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802486/PC-MB1000X667px_NEW_1_o7jlse.jpg', 'Pizza Hải Sản Xốt Mayonnaise', '9 inches', 205000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292397/Pizza-Hai-San-Xot-Ca-Chua-Seafood-Delight_xupcfa.jpg', 'Pizza Bò & Tôm Nướng Kiểu Mỹ', '9 inches', 205000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292396/Pizza-Dam-Bong-Dua-Kieu-Hawaii-Hawaiian_hxanox.jpg', 'Pizza Hải Sản Xốt Cà Chua', '9 inches', 205000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292396/Pizza_Extra_Topping_5_cuthg4.jpg', 'Pizza Hải Sản Nhiệt Đới Xốt Tiêu', '9 inches', 205000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292396/Pizza-Dam-Bong-Dua-Kieu-Hawaii-Hawaiian_hxanox.jpg', 'Pizza Bơ Gơ Bò Mỹ Xốt Habanero', '9 inches', 205000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292396/Pizza_Extra_Topping_5_cuthg4.jpg', 'Pizza Bơ Gơ Bò Mỹ Xốt Phô Mai Ngập Vị', '9 inches', 205000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292396/Pizza_Extra_Topping_4_tmjlja.jpg', 'Pizza New York Bò Beefsteak Phô Mai', '9 inches', 215000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292396/Pizza_Extra_Topping_3_iv0mug.jpg', 'Pizza Thập Cẩm Thượng Hạng', '9 inches', 215000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292396/Pizza_Extra_Topping_2_w4vrxn.jpg', 'Pizza Ngập Vị Phô Mai Hảo Hạng', '9 inches', 175000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802492/Pizza-Dam-Bong-Dua-Kieu-Hawaii-Hawaiian_scftcs.jpg', 'Pizza Rau Củ Thập Cẩm', '9 inches', 155000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292395/Pizza_Extra_Topping_1_tvweih.jpg', 'Pizza 5 Loại Thịt Thượng Hạng', '9 inches', 205000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292395/Pepperoni-feast-Pizza-Xuc-Xich-Y_y0yohh.jpg', 'Pizza Xúc Xích Ý Truyền Thống', '9 inches', 205000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292394/PC-MB1000X667px_NEW_1_g54jcl.png', 'Pizza Dăm Bông Dứa Kiểu Hawaii', '9 inches', 175000),
-(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292394/PC-MB1000X667px_NEW_1_pwrw53.jpg', 'Pizza Phô Mai Truyền Thống', '9 inches', 155000),
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802062/ex_cheese_whp_jr_1_av3n9m.jpg', 'American Trio Charcoal Burger ( Size M )', 'american-trio-charcoal-burger-size-m', 'Burger với 3 loại xốt mới và vỏ bánh than tre thủ công', 79000),
+
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802061/dbl-bbq-bc-chz_mkhjpv.jpg', 'American Trio Charcoal Burger ( Size L )', 'american-trio-charcoal-burger-size-l', 'Burger với 3 loại xốt mới và vỏ bánh than tre thủ công', 129000),
+
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802059/16-burger-b_-n_ng-whopper_1_uhyh8v.jpg', 'CHEESE RING BURGER', 'cheese-ring-burger', 'Burger bò nướng Whopper ( cỡ vừa )', 55000),
+
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802059/12-burger-b_-n_ng-h_nh-chi_n_4_nkn25c.jpg', 'FISH BURGER', 'fish-burger', 'Burger Cá giòn', 49000),
+
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802060/burger-american-jr_uvzewn.jpg', 'GRILLED ONION BURGER', 'grilled-onion-burger', 'Grilled Onion Burger', 49000),
+
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802058/6-burger-ca_x5c3qq.jpg', 'EXTREME CHEESE BURGER JR', 'extreme-cheese-burger-jr-m', 'Burger bò tắm phô mai ( cỡ vừa )', 65000),
+
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802058/6-burger-ca_x5c3qq.jpg', 'EXTREME CHEESE BURGER JR', 'extreme-cheese-burger-jr-l', 'Burger bò tắm phô mai ( cỡ lớn )', 125000),
+
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802060/burger-american-jr_uvzewn.jpg', 'BBQ CHIC''N CRISP CHEESE BURGER', 'bbq-chicn-crisp-cheese-burger-1', 'Burger gà giòn phô mai sốt BBQ', 49000),
+
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802057/2-mieng-b_-burger-b_-n_ng-whopper_3_eqkc20.jpg', 'BBQ CHIC''N CRISP CHEESE BURGER', 'bbq-chicn-crisp-cheese-burger-2', 'Burger gà giòn phô mai sốt BBQ', 49000),
+
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802057/2-mieng-b_-burger-b_-n_ng-whopper_3_eqkc20.jpg', 'DOUBLE WHOPPER', 'double-whopper', 'DOUBLE WHOPPER', 175000),
+
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802057/2-mieng-b_-burger-b_-n_ng-whopper_3_eqkc20.jpg', 'WHOPPER', 'whopper-l', 'Burger bò nướng Whopper ( cỡ lớn )', 125000),
+
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802057/2-mieng-b_-burger-b_-n_ng-whopper_3_eqkc20.jpg', 'WHOPPER', 'whopper-m', 'Burger bò nướng Whopper ( cỡ vừa )', 125000),
+
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802057/2-mieng-b_-burger-b_-n_ng-whopper_3_eqkc20.jpg', 'DOUBLE CHEESEBURGER', 'double-cheeseburger', 'Burger 2 miếng bò nướng phô mai', 79000),
+
+(@BurgersCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802057/2-mieng-b_-burger-b_-n_ng-whopper_3_eqkc20.jpg', 'DOUBLE BBQ BACON CHEESE', 'double-bbq-bacon-cheese', 'Burger 2 miếng bò nướng phô mai thịt xông khói', 105000),
+
+-- Pizza (rút gọn vài cái cho bạn thấy pattern, còn lại bạn copy tương tự)
+(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292400/viber_image_2024-12-20_11-11-37-302_ezuu5p.jpg', 'Pizza Siêu Topping Siêu Topping Hải Sản 4 Mùa', 'pizza-sieu-topping-hai-san-4-mua', '12 inches', 355000),
+
+(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292400/viber_image_2024-12-20_11-11-35-787_caryzj.jpg', 'Pizza Siêu Topping Hải Sản Xốt Pesto "Chanh Sả"', 'pizza-hai-san-pesto-chanh-sa', '9 inches', 235000),
+
+(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292398/Veggie-mania-Pizza-Rau-Cu-Thap-Cam_txn7kk.jpg', 'Pizza Siêu Topping Bò Và Tôm Nướng Kiểu Mỹ', 'pizza-bo-tom-nuong-kieu-my', '9 inches', 235000),
+
+(@PizzaCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292396/Pizza-Dam-Bong-Dua-Kieu-Hawaii-Hawaiian_hxanox.jpg', 'Pizza Dăm Bông Dứa Kiểu Hawaii', 'pizza-hawaiian', '9 inches', 175000),
 
 -- Noodles
-(@MiCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292392/mi-carbonara-300x300_rf01bi.jpg', 'Mì Carbonara', 'Mì spaghetti, thịt xông khói, phô mai Parmesan, lòng đỏ trứng, và tiêu đen.', 155000),
-(@MiCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292392/mi-bolognese-300x300_jz6iba.jpg', 'Mì Bolognese', 'Sự kết hợp hoàn hảo giữa mì spaghetti và sổt Bolognese', 155000),
-(@MiCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292393/mi-y-pho-mai-300x300_k4boec.jpg', 'Mì Ý phô mai', 'Kết hợp giữa mì spaghetti và sốt phô mai béo ngậy', 165000),
+(@MiCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292392/mi-carbonara-300x300_rf01bi.jpg', 'Mì Carbonara', 'mi-carbonara', 'Mì spaghetti, thịt xông khói, phô mai Parmesan', 155000),
+
+(@MiCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292392/mi-bolognese-300x300_jz6iba.jpg', 'Mì Bolognese', 'mi-bolognese', 'Sự kết hợp hoàn hảo giữa mì spaghetti', 155000),
+
 -- Rices
-(@ComCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292386/35.RM1CmBBQTender_bhgwxu.png', 'Cơm BBQ gà không xương', '', 39000),
-(@ComCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292386/36.RM2CmBBQPopcorn_fdulia.png', 'Cơm BBQ gà viên', '', 39000),
-(@ComCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292386/37.RM3CmBBQGGin_nxigfp.png', 'Cơm BBQ gà giòn cay', '', 45000),
-(@ComCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292386/37.RM3CmBBQGGin_nxigfp.png', 'Cơm BBQ gà giòn không cay', '', 45000),
-(@ComCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292386/38.RM4CmGTNM_t1h8o6.png', 'Cơm gà tắm nước mắm', '', 49000),
+(@ComCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292386/38.RM4CmGTNM_t1h8o6.png', 'Cơm gà tắm nước mắm', 'com-ga-nuoc-mam', '', 49000),
+
 -- Drinks
-(@DrinksCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292391/Milohop_y8q3k6.webp', 'Milo', '', 25000),
-(@DrinksCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292391/Dasani_mbfjso.webp', 'Nước suối Dasani', '', 15000),
-(@DrinksCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802123/Cocazero_fvx0tc.webp', 'Coca Cola', '', 15000),
-(@DrinksCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292392/Sprite_jjvq7d.webp', 'Sprite', '', 15000),
-(@DrinksCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292391/Fanta_xt4cov.webp', 'Fanta', '', 15000),
-(@DrinksCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292391/Cocazero_ulbdug.webp', 'Coca Cola Zero', '', 15000),
+(@DrinksCategoryId, 'https://res.cloudinary.com/dxitytnx9/image/upload/v1763292391/Milohop_y8q3k6.webp', 'Milo', 'milo', '', 25000),
+
+(@DrinksCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802123/Cocazero_fvx0tc.webp', 'Coca Cola', 'coca-cola', '', 15000),
+
 -- Combos
-(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802112/m_n_ngon_ph_i_th_-_7_y1anbs.png', 'COMBO DOUBLE WHOPPER JR.', '1 Burger 2 miếng bò nướng ( cỡ vừa ) + Khoai chiên (M) + 1 Đồ uống', 95000),
-(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802111/m_n_ngon_ph_i_th_-_4_2_vrch3n.png', 'COMBO WHOPPER LOVER', '1 Burger bò nướng Whopper ( cỡ lớn ) + Khoai chiên (S) + 4 gà cuộn rong biển + 1 Đồ uống', 159000),
-(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802110/m_n_ngon_ph_i_th_-_2_2__1_i2zw3e.png', 'COMBO EXTREME CHEESE LOVER', '1 Burger bò tắm phô mai ( cỡ lớn ) + Khoai chiên (S) + 4 gà cuộn rong biển + 1 Đồ uống', 159000),
-(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802108/combo-ex-cheese-whopper-lover-new_bttzx0.jpg', 'COMBO WHOPPER BBQ BACON & CHEESE', '1 Burger bò nướng phô mai thịt xông khói + Khoai chiên (M) + 1 Đồ uống', 175000),
-(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802108/combo-ex-cheese-whopper-lover-new_bttzx0.jpg', 'COMBO DOUBLE WHOPPER BBQ BACON AND CHEESE', '1 Burger 2 miếng bò nướng phô mai thịt xông khói ( cỡ lớn ) + Khoai chiên (M) + 1 Đồ uống', 245000),
-(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802108/combo-ex-cheese-whopper-lover-new_bttzx0.jpg', 'COMBO DOUBLE BBQ BACON CHEESE', '1 Burger 2 miếng bò nướng phô mai thịt xông khói ( cỡ vừa ) + Khoai chiên (M) + 1 Đồ uống', 135000),
-(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802107/cb-whp-bbq-bc-chz_gaw7zv.jpg', 'Combo Một Mình Ăn Ngon', '1 Mì Ý gà rán + 1 Nước ngọt', 78000),
-(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802107/combo-doublewhopper_2_uqqe8q.jpg', 'Combo Cặp đôi ăn ý', '2 Mì Ý gà rán + 2 Nước ngọt + 1 Khoai tây chiên', 145000),
-(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802107/combo-doublewhopper_2_uqqe8q.jpg', 'Combo Cả Nhà No Nê', '3 Mì Ý gà rán + 3 Nước ngọt + 2 Miếng gà rán + 1 Khoai tây chiên', 185000),
-(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802107/combo-doublewhopper_2_uqqe8q.jpg', 'Combo Bạn Bè Tụ Tập', '2 Mì Ý gà rán + 2 Cơm gà rán + 4 Nước ngọt + 2 Bánh xoài + 2 Khoai tây chiên', 322000),
-(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802112/m_n_ngon_ph_i_th_-_7_y1anbs.png', 'Tiệc Kiểu Mới, Quà Chuẩn Gu', '4 Mì Ý gà rán + 4 Gà rán + 5 Nước ngọt + 4 Khoai tây chiên', 699000);
+(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802112/m_n_ngon_ph_i_th_-_7_y1anbs.png', 'COMBO DOUBLE WHOPPER JR.', 'combo-double-whopper-jr', 'Combo burger + khoai + nước', 95000),
+
+(@CombosCategoryId, 'https://res.cloudinary.com/dgw84jhvl/image/upload/q_auto/f_auto/v1775802107/combo-doublewhopper_2_uqqe8q.jpg', 'Combo Cặp đôi ăn ý', 'combo-cap-doi', '2 mì + 2 nước + khoai', 145000);
 
 INSERT INTO Vouchers (code, description, discount_type, discount_value, valid_from, valid_to, min_purchase, number_of_uses)
 VALUES

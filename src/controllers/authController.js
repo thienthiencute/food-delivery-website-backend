@@ -22,10 +22,10 @@ const { sendEmail } = require("@config/nodemailer");
 class authController {
   async sendOTP(req, res) {
     try {
-      const { phone, country, resendOTP } = req.body;
-      const { countryCode } = country;
+      const { phone, country, countryCode: bodyCountryCode, resendOTP } = req.body;
+      const countryCode = bodyCountryCode || (country?.countryCode);
 
-      if (!phone || !country) {
+      if (!phone || !countryCode) {
         res.status(400).json({ success: false, message: "Failed to send OTP" });
       }
 
@@ -51,10 +51,10 @@ class authController {
 
   async verifyOTP(req, res) {
     try {
-      const { otp, phone, country } = req.body;
-      const { countryCode } = country;
+      const { otp, phone, country, countryCode: bodyCountryCode } = req.body;
+      const countryCode = bodyCountryCode || (country?.countryCode);
 
-      if (!otp || !phone || !country) {
+      if (!otp || !phone || !countryCode) {
         return res
           .status(400)
           .json({ success: false, message: "Missing required fields" });
