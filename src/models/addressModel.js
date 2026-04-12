@@ -25,20 +25,23 @@ const Address = sequelize.define(
       type: DataTypes.STRING(255),
       allowNull: false,
     },
-    state: DataTypes.STRING(255),
+    ward: DataTypes.STRING(255),
+    district: DataTypes.STRING(255),
     zip_code: DataTypes.STRING(20),
     country: {
       type: DataTypes.STRING(100),
       defaultValue: "Vietnam",
     },
     label: {
-      type: DataTypes.STRING(100),
+      type: DataTypes.ENUM('Home', 'Work', 'Other'),
       defaultValue: "Home",
     },
     is_default: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
+    latitude: DataTypes.DECIMAL(10, 8),
+    longitude: DataTypes.DECIMAL(11, 8),
   },
   {
     tableName: "Addresses",

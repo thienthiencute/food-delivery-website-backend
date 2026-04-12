@@ -9,7 +9,6 @@ const User = sequelize.define(
       primaryKey: true,
     },
     fullname: DataTypes.STRING(255),
-    address: DataTypes.STRING(255),
     gender: DataTypes.ENUM("Male", "Female", "Other"),
     date_of_birth: DataTypes.DATE,
     password: {
@@ -40,15 +39,9 @@ const User = sequelize.define(
       defaultValue: "Customer",
     },
     avatar_path: DataTypes.STRING(1000),
-    payment_method: {
-      type: DataTypes.ENUM(
-        "Credit Card",
-        "Momo",
-        "Zalo Pay",
-        "Bank Transfer",
-        "Cash",
-      ),
-      defaultValue: "Cash",
+    payment_method_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
     },
     created_at: {
       type: DataTypes.DATE,
