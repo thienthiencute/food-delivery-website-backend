@@ -73,18 +73,33 @@ CREATE TABLE Categories (
 
 -- Create Dishes table
 CREATE TABLE Dishes (
-    dish_id CHAR(255) PRIMARY KEY,
+    dish_id CHAR(36) PRIMARY KEY,
     category_id CHAR(255),
-    thumbnail_path VARCHAR(1000) NOT NULL,
+    -- Basic info
     name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) UNIQUE,
     description TEXT,
+    -- Media
+    thumbnail_path VARCHAR(1000) NOT NULL,
+    -- Pricing
     price DECIMAL(10, 2) NOT NULL,
-    available BOOLEAN DEFAULT TRUE,
-
+    discount_amount DECIMAL(5,2) UNSIGNED NOT NULL DEFAULT 0,
+    -- Stock & sales
+    stock INT DEFAULT 0,
+    sold_count INT DEFAULT 0,
+    -- Rating
     points DECIMAL(2,1) NOT NULL DEFAULT 0,
     rate_quantity INT UNSIGNED DEFAULT 0,
-    discount_amount DECIMAL(5,2) UNSIGNED NOT NULL DEFAULT 0,
-
+    rating_avg DECIMAL(2,1) DEFAULT 0,
+    -- Flags
+    available BOOLEAN DEFAULT TRUE,
+    is_featured BOOLEAN DEFAULT FALSE,
+    status ENUM('draft', 'active', 'inactive') DEFAULT 'active',
+    -- Extra info
+    preparation_time INT COMMENT 'minutes',
+    calories INT,
+    tags JSON,
+    -- Time
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -347,10 +362,7 @@ BEGIN
     END IF;
 END$$
 
-
-
 -- Auto generate Users Id
-
 
 CREATE TRIGGER insert_users_id_trigger
 BEFORE INSERT ON Users
