@@ -72,8 +72,6 @@ const usePassportGoogleStrategy = (passport) => {
 
                     const { sub, name, picture, email } = profile._json;
 
-                    const hashedEmail = await hashData(email);
-
                     // save user in database
                     const [user, created] = await userModel.findOrCreate({
                         where: { user_id: sub },
@@ -81,7 +79,7 @@ const usePassportGoogleStrategy = (passport) => {
                             user_id: sub,
                             fullname: name,
                             username: name,
-                            email: hashedEmail,
+                            email: email,
                             avatar_path: picture,
                             type_login: "Google",
                             password: "*",

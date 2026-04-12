@@ -7,6 +7,38 @@ const { authMiddleware } = require("../middlewares/authMiddleware");
 
 /**
  * @swagger
+ * /api/user/search:
+ *   get:
+ *     summary: Find user by query
+ *     tags:
+ *       - User
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: keyword
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Keyword to search (username, email, or phone)
+ *     responses:
+ *       200:
+ *         description: User(s) found successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/search", authMiddleware, userController.findUser);
+
+/**
+ * @swagger
  * /api/user/profile:
  *   get:
  *     summary: Get user profile

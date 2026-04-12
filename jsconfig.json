@@ -14,7 +14,8 @@
             "@constants/*": ["./src/constants/*"],
             "@images/*": ["./src/images/*"],
             "@javascripts/*": ["./src/public/javascripts/*"],
-            "@stylesheets/*": ["./src/public/stylesheets/*"]
+            "@stylesheets/*": ["./src/public/stylesheets/*"],
+            "@websocket": ["./src/websocket/index.js"]
         }
     }
 }

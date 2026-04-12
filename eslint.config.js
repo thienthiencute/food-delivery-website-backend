@@ -18,7 +18,8 @@ module.exports = [
         rules: {
             "no-unused-vars": "warn",
             "no-undef": "error",
-            "no-restricted-globals": "off"
+            "no-restricted-globals": "off",
+            "no-useless-catch": "off"
         },
     },
 ];

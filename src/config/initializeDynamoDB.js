@@ -1,0 +1,133 @@
+require("dotenv").config();
+const AWS = require("aws-sdk");
+
+// Configure AWS
+AWS.config.update({
+    region: process.env.AWS_REGION || "ap-southeast-1",
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+});
+
+const dynamodb = new AWS.DynamoDB();
+
+const createTables = async () => {
+    try {
+        console.log("🔧 Initializing DynamoDB tables...\n");
+
+        // Create conversations table
+        await createConversationsTable();
+
+        // Create conversation_participants table
+        await createConversationParticipantsTable();
+
+        // Create messages table
+        await createMessagesTable();
+
+        console.log("\n✅ All DynamoDB tables created successfully!");
+        process.exit(0);
+    } catch (error) {
+        console.error("❌ Error initializing DynamoDB tables:", error);
+        process.exit(1);
+    }
+};
+
+const createConversationsTable = async () => {
+    const params = {
+        TableName: "conversations",
+        KeySchema: [{ AttributeName: "conversation_id", KeyType: "HASH" }],
+        AttributeDefinitions: [{ AttributeName: "conversation_id", AttributeType: "S" }],
+        BillingMode: "PAY_PER_REQUEST",
+    };
+
+    try {
+        console.log("📝 Creating conversations table...");
+        await dynamodb.createTable(params).promise();
+
+        // Wait for table to be created
+        await dynamodb.waitFor("tableExists", { TableName: "conversations" }).promise();
+        console.log("✅ conversations table created successfully");
+    } catch (error) {
+        if (error.code === "ResourceInUseException") {
+            console.log("⚠️  conversations table already exists");
+        } else {
+            throw error;
+        }
+    }
+};
+
+const createConversationParticipantsTable = async () => {
+    const params = {
+        TableName: "conversation_participants",
+        KeySchema: [
+            { AttributeName: "conversation_id", KeyType: "HASH" },
+            { AttributeName: "user_id", KeyType: "RANGE" },
+        ],
+        AttributeDefinitions: [
+            { AttributeName: "conversation_id", AttributeType: "S" },
+            { AttributeName: "user_id", AttributeType: "S" },
+        ],
+        GlobalSecondaryIndexes: [
+            {
+                IndexName: "user_id-conversation_id-index",
+                KeySchema: [
+                    { AttributeName: "user_id", KeyType: "HASH" },
+                    { AttributeName: "conversation_id", KeyType: "RANGE" },
+                ],
+                Projection: { ProjectionType: "ALL" },
+            },
+        ],
+        BillingMode: "PAY_PER_REQUEST",
+    };
+
+    try {
+        console.log("📝 Creating conversation_participants table...");
+        await dynamodb.createTable(params).promise();
+
+        // Wait for table to be created
+        await dynamodb.waitFor("tableExists", { TableName: "conversation_participants" }).promise();
+        console.log("✅ conversation_participants table created successfully");
+    } catch (error) {
+        if (error.code === "ResourceInUseException") {
+            console.log("⚠️  conversation_participants table already exists");
+        } else {
+            throw error;
+        }
+    }
+};
+
+const createMessagesTable = async () => {
+    const params = {
+        TableName: "messages",
+        KeySchema: [
+            { AttributeName: "conversation_id", KeyType: "HASH" },
+            { AttributeName: "message_id", KeyType: "RANGE" },
+        ],
+        AttributeDefinitions: [
+            { AttributeName: "conversation_id", AttributeType: "S" },
+            { AttributeName: "message_id", AttributeType: "S" },
+        ],
+        BillingMode: "PAY_PER_REQUEST",
+    };
+
+    try {
+        console.log("📝 Creating messages table...");
+        await dynamodb.createTable(params).promise();
+
+        // Wait for table to be created
+        await dynamodb.waitFor("tableExists", { TableName: "messages" }).promise();
+        console.log("✅ messages table created successfully");
+    } catch (error) {
+        if (error.code === "ResourceInUseException") {
+            console.log("⚠️  messages table already exists");
+        } else {
+            throw error;
+        }
+    }
+};
+
+// Run if this file is executed directly
+if (require.main === module) {
+    createTables();
+}
+
+module.exports = createTables;

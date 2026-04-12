@@ -14,6 +14,7 @@ const {
     usePassportFacebookStrategy,
 } = require("@config/passport");
 
+
 const useMiddlewares = (app) => {
     app.use(express.static(path.join(__dirname, "public")));
     app.use(morgan("dev"));
@@ -38,7 +39,7 @@ const useMiddlewares = (app) => {
     );
     app.use(
         cors({
-            origin: process.env.CLIENT_URL,
+            origin: [process.env.CLIENT_URL, process.env.CLIENT_URL2],
             credentials: true,
         }),
     );

@@ -205,6 +205,7 @@ const options = {
         "./src/routes/voucherRouter.js",
         "./src/routes/categoryRouter.js",
         "./src/routes/upload.js",
+        "./src/routes/chatRouter.js",
     ],
 };
 

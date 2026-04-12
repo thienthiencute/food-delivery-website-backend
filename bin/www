@@ -8,6 +8,7 @@ const app = require("../src/server");
 const debug = require("debug")("backend:server");
 const http = require("http");
 const babelRegister = require("@babel/register");
+const { initializeWebSocket } = require("../src/websocket");
 
 babelRegister({
     extensions: [".js", ".ts"],
@@ -24,6 +25,13 @@ app.set("port", port);
  */
 
 const server = http.createServer(app);
+
+/**
+ * Initialize WebSocket
+ */
+const io = initializeWebSocket(server);
+app.set("io", io);
+console.log("🔌 WebSocket server initialized");
 
 /**
  * Listen on provided port, on all network interfaces.
