@@ -72,7 +72,7 @@ const createUser = async (username, type_login, country_code, phone_number, pass
 
 const updateProfile = async (userId, updateData, avatarFile = null) => {
     try {
-        const allowedFields = ["fullname", "phone_number", "gender", "date_of_birth", "payment_method"];
+        const allowedFields = ["fullname", "phone_number", "gender", "date_of_birth", "payment_method", "avatar_path"];
         const updateObj = {};
 
         for (const field of allowedFields) {
@@ -81,8 +81,8 @@ const updateProfile = async (userId, updateData, avatarFile = null) => {
             }
         }
 
-        // Handle avatar upload
-        if (avatarFile) {
+        // Handle legacy avatar file upload (local storage)
+        if (avatarFile && !updateData.avatar_path) {
             updateObj.avatar_path = `/uploads/avatars/${avatarFile.filename}`;
         }
 

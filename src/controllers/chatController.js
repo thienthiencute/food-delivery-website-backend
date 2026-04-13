@@ -1,4 +1,5 @@
 const ChatService = require("@services/chatService");
+const { uploadToS3 } = require("@config/multer");
 
 // Get user's conversations
 const getConversations = async (req, res) => {
@@ -89,7 +90,15 @@ const createGroupConversation = async (req, res) => {
         }
 
         if (req.file) {
-            avatarPath = `/uploads/conversations/${req.file.filename}`;
+            try {
+                avatarPath = await uploadToS3(req.file, "conversations");
+            } catch (error) {
+                console.error("Failed to upload conversation avatar:", error);
+                return res.status(500).json({
+                    success: false,
+                    message: `Failed to upload avatar: ${error.message}`,
+                });
+            }
         }
 
         const conversation = await ChatService.createGroupConversation(userId, name, participantIds, avatarPath);
@@ -168,29 +177,39 @@ const sendMessage = async (req, res) => {
         const { content, type = "text", mentions = [], replyToId } = req.body;
         const io = req.app.get("io");
 
-        if (!content) {
+        // Content is required only if there are no attachments
+        if (!content && (!req.files || req.files.length === 0)) {
             return res.status(400).json({
                 success: false,
-                message: "content is required",
+                message: "content or attachments are required",
             });
         }
 
+        // Upload files to S3 and build attachments array
         const attachments = [];
-        if (req.files) {
+        if (req.files && req.files.length > 0) {
             for (const file of req.files) {
-                attachments.push({
-                    fileId: file.filename,
-                    fileName: file.originalname,
-                    fileSize: file.size,
-                    mimeType: file.mimetype,
-                    fileUrl: `/uploads/messages/${file.filename}`,
-                });
+                try {
+                    const fileUrl = await uploadToS3(file, `messages/${conversationId}`);
+                    attachments.push({
+                        fileName: file.originalname,
+                        fileSize: file.size,
+                        mimeType: file.mimetype,
+                        fileUrl, // S3 URL
+                    });
+                } catch (error) {
+                    console.error(`Failed to upload file ${file.originalname}:`, error);
+                    return res.status(500).json({
+                        success: false,
+                        message: `Failed to upload file ${file.originalname}: ${error.message}`,
+                    });
+                }
             }
         }
 
         const message = await ChatService.sendMessage(userId, conversationId, {
-            content,
-            type,
+            content: content || "",
+            type: attachments.length > 0 ? (attachments[0].mimeType?.startsWith("image") ? "image" : "file") : type,
             mentions,
             replyToId,
             attachments,
@@ -213,11 +232,16 @@ const sendMessage = async (req, res) => {
                 emitConversationUpdated(io, conversationId, [member.user_id], {
                     lastMessage: {
                         messageId: message.messageId,
-                        content: message.content,
+                        content:
+                            message.content ||
+                            (attachments.length > 0
+                                ? `[${attachments[0].mimeType?.startsWith("image") ? "Image" : "File"}]`
+                                : ""),
                         type: message.type,
                         senderName: message.senderName,
                         senderAvatar: message.senderAvatar,
                         createdAt: message.createdAt,
+                        attachments: message.attachments,
                     },
                     lastMessageTimestamp: message.createdAt,
                     lastMessageId: message.messageId,
@@ -282,15 +306,43 @@ const deleteMessage = async (req, res) => {
 
         await ChatService.deleteMessage(userId, conversationId, messageId);
 
-        // Emit real-time message deleted event
+        // Emit real-time message deleted event with deleted_by info
         if (io) {
             const { emitMessageDeleted } = require("@websocket");
-            emitMessageDeleted(io, conversationId, messageId);
+            emitMessageDeleted(io, conversationId, messageId, userId);
         }
 
         res.status(200).json({
             success: true,
             message: "Message deleted successfully",
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
+// Recall message (within 5 minutes)
+const recallMessage = async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+        const { conversationId, messageId } = req.params;
+        const io = req.app.get("io");
+
+        const recalled = await ChatService.recallMessage(userId, conversationId, messageId);
+
+        // Emit real-time message recalled event
+        if (io) {
+            const { emitMessageRecalled } = require("@websocket");
+            emitMessageRecalled(io, conversationId, messageId);
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Message recalled successfully",
+            data: recalled,
         });
     } catch (error) {
         res.status(400).json({
@@ -535,7 +587,15 @@ const updateConversation = async (req, res) => {
         const updateData = {};
         if (name) updateData.name = name;
         if (req.file) {
-            updateData.avatar_path = `/uploads/conversations/${req.file.filename}`;
+            try {
+                updateData.avatar_path = await uploadToS3(req.file, "conversations");
+            } catch (error) {
+                console.error("Failed to upload conversation avatar:", error);
+                return res.status(500).json({
+                    success: false,
+                    message: `Failed to upload avatar: ${error.message}`,
+                });
+            }
         }
 
         if (Object.keys(updateData).length === 0) {
@@ -589,6 +649,7 @@ module.exports = {
     sendMessage,
     editMessage,
     deleteMessage,
+    recallMessage,
     markMessagesAsRead,
     markConversationAsRead,
     addReaction,

@@ -23,6 +23,12 @@ const createTables = async () => {
         // Create messages table
         await createMessagesTable();
 
+        // Create calls table
+        await createCallsTable();
+
+        // Create active_calls table
+        await createActiveCallsTable();
+
         console.log("\n✅ All DynamoDB tables created successfully!");
         process.exit(0);
     } catch (error) {
@@ -119,6 +125,88 @@ const createMessagesTable = async () => {
     } catch (error) {
         if (error.code === "ResourceInUseException") {
             console.log("⚠️  messages table already exists");
+        } else {
+            throw error;
+        }
+    }
+};
+
+const createCallsTable = async () => {
+    const params = {
+        TableName: "calls",
+        KeySchema: [{ AttributeName: "call_id", KeyType: "HASH" }],
+        AttributeDefinitions: [
+            { AttributeName: "call_id", AttributeType: "S" },
+            { AttributeName: "conversation_id", AttributeType: "S" },
+            { AttributeName: "initiator_id", AttributeType: "S" },
+            { AttributeName: "created_at", AttributeType: "N" },
+            { AttributeName: "status", AttributeType: "S" },
+        ],
+        GlobalSecondaryIndexes: [
+            {
+                IndexName: "conversation_id-created_at-index",
+                KeySchema: [
+                    { AttributeName: "conversation_id", KeyType: "HASH" },
+                    { AttributeName: "created_at", KeyType: "RANGE" },
+                ],
+                Projection: { ProjectionType: "ALL" },
+            },
+            {
+                IndexName: "initiator_id-status-index",
+                KeySchema: [
+                    { AttributeName: "initiator_id", KeyType: "HASH" },
+                    { AttributeName: "status", KeyType: "RANGE" },
+                ],
+                Projection: { ProjectionType: "ALL" },
+            },
+        ],
+        BillingMode: "PAY_PER_REQUEST",
+    };
+
+    try {
+        console.log("📝 Creating calls table...");
+        await dynamodb.createTable(params).promise();
+
+        // Wait for table to be created
+        await dynamodb.waitFor("tableExists", { TableName: "calls" }).promise();
+        console.log("✅ calls table created successfully");
+    } catch (error) {
+        if (error.code === "ResourceInUseException") {
+            console.log("⚠️  calls table already exists");
+        } else {
+            throw error;
+        }
+    }
+};
+
+const createActiveCallsTable = async () => {
+    const params = {
+        TableName: "active_calls",
+        KeySchema: [{ AttributeName: "active_call_id", KeyType: "HASH" }],
+        AttributeDefinitions: [
+            { AttributeName: "active_call_id", AttributeType: "S" },
+            { AttributeName: "call_id", AttributeType: "S" },
+        ],
+        GlobalSecondaryIndexes: [
+            {
+                IndexName: "call_id-index",
+                KeySchema: [{ AttributeName: "call_id", KeyType: "HASH" }],
+                Projection: { ProjectionType: "ALL" },
+            },
+        ],
+        BillingMode: "PAY_PER_REQUEST",
+    };
+
+    try {
+        console.log("📝 Creating active_calls table...");
+        await dynamodb.createTable(params).promise();
+
+        // Wait for table to be created
+        await dynamodb.waitFor("tableExists", { TableName: "active_calls" }).promise();
+        console.log("✅ active_calls table created successfully");
+    } catch (error) {
+        if (error.code === "ResourceInUseException") {
+            console.log("⚠️  active_calls table already exists");
         } else {
             throw error;
         }

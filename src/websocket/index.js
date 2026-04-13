@@ -96,6 +96,115 @@ const initializeWebSocket = (server) => {
             });
         });
 
+        // ===== CALL HANDLERS =====
+
+        // Initiate call
+        socket.on("call_user", (data) => {
+            const { callId, recipientId, callType, conversationId } = data;
+            const recipientRoom = `user:${recipientId}`;
+
+            console.log(`📞 Call initiated from ${userId} to ${recipientId} (${callType})`);
+
+            io.to(recipientRoom).emit("incoming_call", {
+                callId,
+                callerId: userId,
+                callerName: socket.user?.full_name || "Unknown",
+                callerAvatar: socket.user?.avatar || null,
+                callType,
+                conversationId,
+                timestamp: new Date().toISOString(),
+            });
+        });
+
+        // Accept call
+        socket.on("accept_call", (data) => {
+            const { callId, callerId } = data;
+            const callerRoom = `user:${callerId}`;
+
+            console.log(`✅ Call accepted: ${callId} by user ${userId}`);
+
+            io.to(callerRoom).emit("call_accepted", {
+                callId,
+                recipientId: userId,
+                recipientSocketId: socket.id,
+                recipientName: socket.user?.full_name || "Unknown",
+                recipientAvatar: socket.user?.avatar || null,
+                timestamp: new Date().toISOString(),
+            });
+        });
+
+        // Reject call
+        socket.on("reject_call", (data) => {
+            const { callId, callerId, reason } = data;
+            const callerRoom = `user:${callerId}`;
+
+            console.log(`❌ Call rejected: ${callId} by user ${userId} (Reason: ${reason})`);
+
+            io.to(callerRoom).emit("call_rejected", {
+                callId,
+                reason,
+                timestamp: new Date().toISOString(),
+            });
+        });
+
+        // End call
+        socket.on("end_call", (data) => {
+            const { callId, recipientId, duration } = data;
+            const recipientRoom = `user:${recipientId}`;
+
+            console.log(`⏹️  Call ended: ${callId} - Duration: ${duration}s`);
+
+            io.to(recipientRoom).emit("call_ended", {
+                callId,
+                duration,
+                timestamp: new Date().toISOString(),
+            });
+        });
+
+        // WebRTC Signaling - Send offer
+        socket.on("offer", (data) => {
+            const { callId, recipientId, offer } = data;
+            const recipientRoom = `user:${recipientId}`;
+
+            console.log(`📡 Offer received for call: ${callId}`);
+
+            io.to(recipientRoom).emit("offer", {
+                callId,
+                callerId: userId,
+                offer,
+                timestamp: new Date().toISOString(),
+            });
+        });
+
+        // WebRTC Signaling - Send answer
+        socket.on("answer", (data) => {
+            const { callId, callerId, answer } = data;
+            const callerRoom = `user:${callerId}`;
+
+            console.log(`📡 Answer received for call: ${callId}`);
+
+            io.to(callerRoom).emit("answer", {
+                callId,
+                recipientId: userId,
+                answer,
+                timestamp: new Date().toISOString(),
+            });
+        });
+
+        // WebRTC Signaling - Send ICE candidate
+        socket.on("ice_candidate", (data) => {
+            const { callId, recipientId, candidate } = data;
+            const recipientRoom = `user:${recipientId}`;
+
+            console.log(`❄️  ICE candidate for call: ${callId}`);
+
+            io.to(recipientRoom).emit("ice_candidate", {
+                callId,
+                candidate,
+                timestamp: new Date().toISOString(),
+            });
+        });
+
         // Disconnect handler
         socket.on("disconnect", () => {
             console.log(`❌ User ${userId} disconnected: ${socket.id}`);
@@ -166,9 +275,35 @@ const emitMessageEdited = (io, conversationId, message) => {
  * @param {string} conversationId - Conversation ID
  * @param {string} messageId - Message ID
  */
-const emitMessageDeleted = (io, conversationId, messageId) => {
+/**
+ * Emit message deleted (Delete for Me - only to the user who deleted)
+ * @param {SocketIO.Server} io - Socket.io server instance
+ * @param {string} conversationId - Conversation ID
+ * @param {string} messageId - Message ID
+ * @param {string} deleted_by_user_id - User ID who deleted the message (only this user receives event)
+ */
+const emitMessageDeleted = (io, conversationId, messageId, deleted_by_user_id = null) => {
+    // Emit ONLY to the user's personal room (Delete for Me)
+    // Other users will NOT see the message as deleted
+    if (deleted_by_user_id) {
+        const userRoom = `user:${deleted_by_user_id}`;
+        io.to(userRoom).emit("message_deleted", {
+            conversationId,
+            messageId,
+            timestamp: new Date().toISOString(),
+        });
+    }
+};
+
+/**
+ * Emit message recalled
+ * @param {SocketIO.Server} io - Socket.io server instance
+ * @param {string} conversationId - Conversation ID
+ * @param {string} messageId - Message ID
+ */
+const emitMessageRecalled = (io, conversationId, messageId) => {
     const roomName = `conversation_${conversationId}`;
-    io.to(roomName).emit("message_deleted", {
+    io.to(roomName).emit("message_recalled", {
         conversationId,
         messageId,
         timestamp: new Date().toISOString(),
@@ -274,16 +409,122 @@ const getOnlineUsersInConversation = (io, conversationId) => {
     return Array.from(onlineUsers);
 };
 
+/**
+ * Emit incoming call
+ * @param {SocketIO.Server} io - Socket.io server instance
+ * @param {string} recipientId - Recipient user ID
+ * @param {object} callData - Call data
+ */
+const emitIncomingCall = (io, recipientId, callData) => {
+    const recipientRoom = `user:${recipientId}`;
+    io.to(recipientRoom).emit("incoming_call", {
+        ...callData,
+        timestamp: new Date().toISOString(),
+    });
+};
+
+/**
+ * Emit call accepted
+ * @param {SocketIO.Server} io - Socket.io server instance
+ * @param {string} callerId - Caller user ID
+ * @param {object} callData - Call data
+ */
+const emitCallAccepted = (io, callerId, callData) => {
+    const callerRoom = `user:${callerId}`;
+    io.to(callerRoom).emit("call_accepted", {
+        ...callData,
+        timestamp: new Date().toISOString(),
+    });
+};
+
+/**
+ * Emit call rejected
+ * @param {SocketIO.Server} io - Socket.io server instance
+ * @param {string} callerId - Caller user ID
+ * @param {object} callData - Call data
+ */
+const emitCallRejected = (io, callerId, callData) => {
+    const callerRoom = `user:${callerId}`;
+    io.to(callerRoom).emit("call_rejected", {
+        ...callData,
+        timestamp: new Date().toISOString(),
+    });
+};
+
+/**
+ * Emit call ended
+ * @param {SocketIO.Server} io - Socket.io server instance
+ * @param {string} recipientId - Recipient user ID
+ * @param {object} callData - Call data
+ */
+const emitCallEnded = (io, recipientId, callData) => {
+    const recipientRoom = `user:${recipientId}`;
+    io.to(recipientRoom).emit("call_ended", {
+        ...callData,
+        timestamp: new Date().toISOString(),
+    });
+};
+
+/**
+ * Emit WebRTC offer
+ * @param {SocketIO.Server} io - Socket.io server instance
+ * @param {string} recipientId - Recipient user ID
+ * @param {object} offerData - Offer data
+ */
+const emitOffer = (io, recipientId, offerData) => {
+    const recipientRoom = `user:${recipientId}`;
+    io.to(recipientRoom).emit("offer", {
+        ...offerData,
+        timestamp: new Date().toISOString(),
+    });
+};
+
+/**
+ * Emit WebRTC answer
+ * @param {SocketIO.Server} io - Socket.io server instance
+ * @param {string} callerId - Caller user ID
+ * @param {object} answerData - Answer data
+ */
+const emitAnswer = (io, callerId, answerData) => {
+    const callerRoom = `user:${callerId}`;
+    io.to(callerRoom).emit("answer", {
+        ...answerData,
+        timestamp: new Date().toISOString(),
+    });
+};
+
+/**
+ * Emit ICE candidate
+ * @param {SocketIO.Server} io - Socket.io server instance
+ * @param {string} recipientId - Recipient user ID
+ * @param {object} candidateData - ICE candidate data
+ */
+const emitICECandidate = (io, recipientId, candidateData) => {
+    const recipientRoom = `user:${recipientId}`;
+    io.to(recipientRoom).emit("ice_candidate", {
+        ...candidateData,
+        timestamp: new Date().toISOString(),
+    });
+};
+
 module.exports = {
     initializeWebSocket,
     emitMessageToConversation,
     emitMessageRead,
     emitMessageEdited,
     emitMessageDeleted,
+    emitMessageRecalled,
     emitReactionAdded,
     emitReactionRemoved,
     emitMemberAdded,
     emitMemberRemoved,
     emitConversationUpdated,
     getOnlineUsersInConversation,
+    emitIncomingCall,
+    emitCallAccepted,
+    emitCallRejected,
+    emitCallEnded,
+    emitOffer,
+    emitAnswer,
+    emitICECandidate,
 };

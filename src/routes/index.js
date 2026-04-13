@@ -6,6 +6,7 @@ const voucherRouter = require("./voucherRouter");
 const categoryRouter = require("./categoryRouter");
 const uploadRoute = require("./upload");
 const chatRouter = require("./chatRouter");
+const callRouter = require("./callRouter");
 const { authAdminMiddleware, authMiddleware } = require("@middlewares/authMiddleware");
 
 const routes = (app) => {
@@ -17,6 +18,7 @@ const routes = (app) => {
     app.use("/api/voucher", authMiddleware, voucherRouter);
     app.use("/api/category", categoryRouter);
     app.use("/api/conversations", chatRouter);
+    app.use("/api/calls", authMiddleware, callRouter);
 };
 
 module.exports = routes;

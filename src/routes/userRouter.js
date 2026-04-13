@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const userController = require("@controllers/userController");
-const upload = require("@config/multer");
+const { profileUpload } = require("@config/multer");
 const { authMiddleware } = require("../middlewares/authMiddleware");
 
 /**
@@ -93,7 +93,7 @@ router.get("/profile", authMiddleware, userController.getProfile);
  *       400:
  *         description: Invalid input
  */
-router.put("/profile", authMiddleware, upload.single("avatar"), userController.updateProfile);
+router.put("/profile", authMiddleware, profileUpload.single("avatar"), userController.updateProfile);
 
 /**
  * @swagger

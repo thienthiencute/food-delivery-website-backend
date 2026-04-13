@@ -18,6 +18,8 @@ class MessageModel {
                 is_read: false,
                 is_deleted: false,
                 is_edited: false,
+                is_recalled: false,
+                deleted_by: new Set(), // Initialize as empty Set
             },
         };
 
@@ -134,20 +136,41 @@ class MessageModel {
     // Delete message for a specific user (Delete for Me)
     static async deleteMessageForUser(conversationId, messageId, userId) {
         const now = new Date().toISOString();
-        const params = {
-            TableName: TABLE_NAME,
-            Key: { conversation_id: conversationId, message_id: messageId },
-            UpdateExpression: "SET deleted_by = if_not_exists(deleted_by, :empty) + :userId, updated_at = :updated_at",
-            ExpressionAttributeValues: {
-                ":empty": new Set(),
-                ":userId": new Set([userId]),
-                ":updated_at": now,
-            },
-            ReturnValues: "ALL_NEW",
-        };
 
-        const result = await dynamodb.update(params).promise();
-        return result.Attributes;
+        // Try to add to existing set first
+        try {
+            const params = {
+                TableName: TABLE_NAME,
+                Key: { conversation_id: conversationId, message_id: messageId },
+                UpdateExpression: "ADD deleted_by :userId SET updated_at = :updated_at",
+                ExpressionAttributeValues: {
+                    ":userId": new Set([userId]),
+                    ":updated_at": now,
+                },
+                ReturnValues: "ALL_NEW",
+            };
+
+            const result = await dynamodb.update(params).promise();
+            return result.Attributes;
+        } catch (error) {
+            // If ADD fails (attribute doesn't exist or is NULL), use SET to create it
+            if (error.message.includes("ADD") || error.message.includes("NULL")) {
+                const params = {
+                    TableName: TABLE_NAME,
+                    Key: { conversation_id: conversationId, message_id: messageId },
+                    UpdateExpression: "SET deleted_by = :userId, updated_at = :updated_at",
+                    ExpressionAttributeValues: {
+                        ":userId": new Set([userId]),
+                        ":updated_at": now,
+                    },
+                    ReturnValues: "ALL_NEW",
+                };
+
+                const result = await dynamodb.update(params).promise();
+                return result.Attributes;
+            }
+            throw error;
+        }
     }
 
     // Check if message is deleted for a specific user
@@ -157,6 +180,25 @@ class MessageModel {
 
         const deletedBy = message.deleted_by || [];
         return deletedBy.includes(userId);
+    }
+
+    // Recall message (soft delete for all users)
+    static async recall(conversationId, messageId) {
+        const now = new Date().toISOString();
+        const params = {
+            TableName: TABLE_NAME,
+            Key: { conversation_id: conversationId, message_id: messageId },
+            UpdateExpression: "SET is_recalled = :is_recalled, recalled_at = :recalled_at, updated_at = :updated_at",
+            ExpressionAttributeValues: {
+                ":is_recalled": true,
+                ":recalled_at": now,
+                ":updated_at": now,
+            },
+            ReturnValues: "ALL_NEW",
+        };
+
+        const result = await dynamodb.update(params).promise();
+        return result.Attributes;
     }
 
     static async addReaction(conversationId, messageId, emoji, userId) {

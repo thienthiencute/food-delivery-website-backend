@@ -1,4 +1,5 @@
 const { getProfile, updateProfile, changePassword, findUser } = require("@services/userService");
+const { uploadToS3 } = require("@config/multer");
 const {
     getAddressesByUserId,
     createAddress,
@@ -52,8 +53,28 @@ class UserController {
     updateProfile = async (req, res) => {
         try {
             const userId = req.user.user_id;
-            const avatarFile = req.file; // From multer
-            const profile = await updateProfile(userId, req.body, avatarFile);
+            let avatarUrl = null;
+
+            // Upload avatar to S3 if provided
+            if (req.file) {
+                try {
+                    avatarUrl = await uploadToS3(req.file, "profiles");
+                } catch (error) {
+                    console.error("Failed to upload profile avatar:", error);
+                    return res.status(500).json({
+                        success: false,
+                        message: `Failed to upload avatar: ${error.message}`,
+                    });
+                }
+            }
+
+            // Prepare update data with S3 URL
+            const updateData = {
+                ...req.body,
+                ...(avatarUrl && { avatar_path: avatarUrl }),
+            };
+
+            const profile = await updateProfile(userId, updateData);
 
             res.json({
                 success: true,

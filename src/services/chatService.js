@@ -590,6 +590,50 @@ class ChatService {
             throw error;
         }
     }
+
+    // Recall message (only sender can recall within 5 minutes)
+    static async recallMessage(userId, conversationId, messageId) {
+        try {
+            const conversation = await ConversationModel.findById(conversationId);
+            if (!conversation || conversation.is_active === false) {
+                throw new Error("Conversation not found");
+            }
+
+            const message = await MessageModel.findById(conversationId, messageId);
+            if (!message) {
+                throw new Error("Message not found");
+            }
+
+            // Only sender can recall their own message
+            if (message.sender_id !== userId) {
+                throw new Error("Only message sender can recall this message");
+            }
+
+            // Check if message was already recalled
+            if (message.is_recalled) {
+                throw new Error("Message already recalled");
+            }
+
+            // Validate message age (< 5 minutes)
+            const createdTime = new Date(message.created_at).getTime();
+            const currentTime = new Date().getTime();
+            const ageInMinutes = (currentTime - createdTime) / (1000 * 60);
+
+            if (ageInMinutes > 5) {
+                throw new Error("Messages can only be recalled within 5 minutes of sending");
+            }
+
+            // Recall the message
+            const recalled = await MessageModel.recall(conversationId, messageId);
+
+            return toCamelCase({
+                ...recalled,
+                senderName: await userService.getUserById(message.sender_id).then((u) => u?.fullname || "Unknown User"),
+            });
+        } catch (error) {
+            throw error;
+        }
+    }
 }
 
 module.exports = ChatService;

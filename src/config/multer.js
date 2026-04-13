@@ -1,16 +1,127 @@
 const multer = require("multer");
 const path = require("path");
+const AWS = require("aws-sdk");
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, "uploads/"); // Thư mục lưu trữ tệp tin
-    },
-    filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname);
-        cb(null, Date.now() + ext); // Đổi tên tệp tin để tránh trùng lặp
+// Configure AWS S3
+const s3 = new AWS.S3({
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: process.env.AWS_REGION || "ap-southeast-1",
+});
+
+// ===== S3 Storage Configuration =====
+const s3Storage = multer.memoryStorage(); // Store in memory before uploading to S3
+
+// ===== MESSAGE ATTACHMENTS UPLOAD =====
+const messageUpload = multer({
+    storage: s3Storage,
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+    fileFilter: (req, file, cb) => {
+        const allowedMimes = [
+            // Images
+            "image/jpeg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+            "image/bmp",
+            // Documents
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "text/plain",
+            "text/csv",
+            // Archives
+            "application/zip",
+            "application/x-rar-compressed",
+            "application/gzip",
+            // Audio
+            "audio/mpeg",
+            "audio/wav",
+            "audio/ogg",
+            "audio/webm",
+            // Video
+            "video/mp4",
+            "video/webm",
+        ];
+
+        if (allowedMimes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error(`File type ${file.mimetype} not allowed.`));
+        }
     },
 });
 
-const upload = multer({ storage: storage });
+// ===== CONVERSATION AVATAR UPLOAD =====
+const conversationUpload = multer({
+    storage: s3Storage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    fileFilter: (req, file, cb) => {
+        const allowedMimes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+        if (allowedMimes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error("Invalid file type. Only images allowed."));
+        }
+    },
+});
 
-module.exports = upload;
+// ===== USER PROFILE AVATAR UPLOAD =====
+const profileUpload = multer({
+    storage: s3Storage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    fileFilter: (req, file, cb) => {
+        const allowedMimes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+        if (allowedMimes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error("Invalid file type. Only images allowed."));
+        }
+    },
+});
+
+/**
+ * Upload file to AWS S3
+ * @param {Object} file - File object from multer
+ * @param {string} folder - Folder name in S3 bucket (e.g., 'messages', 'conversations')
+ * @returns {Promise<string>} - S3 file URL
+ */
+const uploadToS3 = async (file, folder) => {
+    if (!file) return null;
+
+    const bucketName = process.env.AWS_S3_BUCKET || "food-delivery";
+    const timestamp = Date.now();
+    const random = Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    const name = path
+        .basename(file.originalname, ext)
+        .replace(/[^a-z0-9.-]/gi, "_")
+        .toLowerCase();
+    const key = `${folder}/${timestamp}-${random}-${name}${ext}`;
+
+    const params = {
+        Bucket: bucketName,
+        Key: key,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+    };
+
+    try {
+        const result = await s3.upload(params).promise();
+        // Return S3 URL (works if bucket allows public read or has public bucket policy)
+        return result.Location;
+    } catch (error) {
+        console.error("S3 upload error:", error);
+        throw new Error(`Failed to upload to S3: ${error.message}`);
+    }
+};
+
+module.exports = {
+    messageUpload,
+    conversationUpload,
+    profileUpload,
+    uploadToS3,
+    s3,
+};

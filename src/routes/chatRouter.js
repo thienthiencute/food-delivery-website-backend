@@ -3,7 +3,7 @@ const router = express.Router();
 
 const chatController = require("@controllers/chatController");
 const { authMiddleware } = require("@middlewares/authMiddleware");
-const upload = require("@config/multer");
+const { messageUpload, conversationUpload } = require("@config/multer");
 
 /**
  * @swagger
@@ -249,7 +249,7 @@ router.post("/", authMiddleware, chatController.getOrCreateDirectConversation);
  *       401:
  *         description: Unauthorized
  */
-router.post("/group", authMiddleware, upload.single("avatar"), chatController.createGroupConversation);
+router.post("/group", authMiddleware, conversationUpload.single("avatar"), chatController.createGroupConversation);
 
 // Get conversation details
 /**
@@ -379,7 +379,7 @@ router.post("/details", authMiddleware, chatController.getConversationDetails);
  *       401:
  *         description: Unauthorized
  */
-router.put("/:conversationId", authMiddleware, upload.single("avatar"), chatController.updateConversation);
+router.put("/:conversationId", authMiddleware, conversationUpload.single("avatar"), chatController.updateConversation);
 
 // Update conversation settings (mute/pin)
 /**
@@ -584,7 +584,12 @@ router.post("/messages", authMiddleware, chatController.getMessages);
  *       401:
  *         description: Unauthorized
  */
-router.post("/:conversationId/messages", authMiddleware, upload.array("attachments"), chatController.sendMessage);
+router.post(
+    "/:conversationId/messages",
+    authMiddleware,
+    messageUpload.array("attachments"),
+    chatController.sendMessage,
+);
 
 // Mark messages as read
 /**
@@ -726,6 +731,51 @@ router.put("/:conversationId/messages/:messageId", authMiddleware, chatControlle
  *         description: Unauthorized
  */
 router.delete("/:conversationId/messages/:messageId", authMiddleware, chatController.deleteMessage);
+
+// Recall message (within 5 minutes)
+/**
+ * @swagger
+ * /api/conversations/{conversationId}/messages/{messageId}/recall:
+ *   put:
+ *     summary: Recall a message (within 5 minutes)
+ *     description: Sender can recall their message within 5 minutes of sending
+ *     tags:
+ *       - Chat - Messages
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: messageId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Message recalled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Message cannot be recalled (too old or not sender)
+ *       404:
+ *         description: Message not found
+ *       401:
+ *         description: Unauthorized
+ */
+router.put("/:conversationId/messages/:messageId/recall", authMiddleware, chatController.recallMessage);
 
 // Mark conversation as read
 /**
