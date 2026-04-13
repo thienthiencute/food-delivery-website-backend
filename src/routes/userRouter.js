@@ -2,8 +2,40 @@ const express = require("express");
 const router = express.Router();
 
 const userController = require("@controllers/userController");
-const upload = require("@config/multer");
+const { profileUpload } = require("@config/multer");
 const { authMiddleware } = require("../middlewares/authMiddleware");
+
+/**
+ * @swagger
+ * /api/user/search:
+ *   get:
+ *     summary: Find user by query
+ *     tags:
+ *       - User
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: keyword
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Keyword to search (username, email, or phone)
+ *     responses:
+ *       200:
+ *         description: User(s) found successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/search", authMiddleware, userController.findUser);
 
 /**
  * @swagger
@@ -61,7 +93,7 @@ router.get("/profile", authMiddleware, userController.getProfile);
  *       400:
  *         description: Invalid input
  */
-router.put("/profile", authMiddleware, upload.single("avatar"), userController.updateProfile);
+router.put("/profile", authMiddleware, profileUpload.single("avatar"), userController.updateProfile);
 
 /**
  * @swagger

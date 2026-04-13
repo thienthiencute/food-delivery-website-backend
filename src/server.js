@@ -28,6 +28,9 @@ app.use(
 // routing
 routes(app);
 
+// Store io instance globally for services to access
+app.set("io", null);
+
 // connect to the database
 connectToDatabase();
 

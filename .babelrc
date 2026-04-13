@@ -17,7 +17,8 @@
                     "@images": "./src/public/images",
                     "@constants": "./src/constants",
                     "@javascripts": "./src/public/javascripts",
-                    "@stylesheets": "./src/public/stylesheets"
+                    "@stylesheets": "./src/public/stylesheets",
+                    "@websocket": "./src/websocket"
                 },
                 "extensions": [".js"]
             }
