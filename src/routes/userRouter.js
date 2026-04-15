@@ -271,5 +271,45 @@ router.delete("/addresses/:id", authMiddleware, userController.deleteAddress);
  *         description: Address not found
  */
 router.put("/addresses/:id/default", authMiddleware, userController.setDefaultAddress);
++
++/**
++ * @swagger
++ * /api/user/orders:
++ *   get:
++ *     summary: Get user order history
++ *     tags:
++ *       - User - Orders
++ *     security:
++ *       - BearerAuth: []
++ *     responses:
++ *       200:
++ *         description: Orders retrieved successfully
++ *       401:
++ *         description: Unauthorized
++ */
++router.get("/orders", authMiddleware, userController.getOrders);
++
++/**
++ * @swagger
++ * /api/user/orders/{id}/reorder:
++ *   post:
++ *     summary: Reorder items from a past order
++ *     tags:
++ *       - User - Orders
++ *     security:
++ *       - BearerAuth: []
++ *     parameters:
++ *       - in: path
++ *         name: id
++ *         required: true
++ *         schema:
++ *           type: string
++ *     responses:
++ *       200:
++ *         description: Items added to cart successfully
++ *       404:
++ *         description: Order not found
++ */
++router.post("/orders/:id/reorder", authMiddleware, userController.reorder);
 
 module.exports = router;

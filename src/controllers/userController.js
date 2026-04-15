@@ -188,7 +188,7 @@ class UserController {
         }
     };
 
-    // PUT /addresses/:id/default - Set default address
+    // GET /addresses/:id/default - Set default address
     setDefaultAddress = async (req, res) => {
         try {
             const userId = req.user.user_id;
@@ -202,6 +202,38 @@ class UserController {
             res.status(400).json({
                 success: false,
                 message: error.message || "Failed to set default address",
+            });
+        }
+    };
+
+    // GET /orders - Get user order history
+    getOrders = async (req, res) => {
+        try {
+            const userId = req.user.user_id;
+            const orders = await require("@services/orderService").getUserOrders(userId);
+            res.json({
+                success: true,
+                data: orders,
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: error.message || "Failed to fetch orders",
+            });
+        }
+    };
+
+    // POST /orders/:id/reorder - Add items from a past order to cart
+    reorder = async (req, res) => {
+        try {
+            const userId = req.user.user_id;
+            const { id } = req.params;
+            const result = await require("@services/orderService").reorder(userId, id);
+            res.json(result);
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: error.message || "Failed to reorder items",
             });
         }
     };

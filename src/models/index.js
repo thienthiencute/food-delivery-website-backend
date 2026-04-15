@@ -44,3 +44,23 @@ module.exports = {
 // Define associations after all models loaded
 userModel.hasMany(addressModel, { foreignKey: "user_id", as: "addresses" });
 addressModel.belongsTo(userModel, { foreignKey: "user_id" });
+
+// Order associations
+userModel.hasMany(orderModel, { foreignKey: "account_id", as: "orders" });
+orderModel.belongsTo(userModel, { foreignKey: "account_id", as: "user" });
+
+orderModel.hasMany(orderItemModel, { foreignKey: "order_id", as: "items" });
+orderItemModel.belongsTo(orderModel, { foreignKey: "order_id", as: "order" });
+
+orderItemModel.belongsTo(dishModel, { foreignKey: "dish_id", as: "dish" });
+dishModel.hasMany(orderItemModel, { foreignKey: "dish_id" });
+
+// Cart associations
+userModel.hasOne(cartModel, { foreignKey: "user_id", as: "cart" });
+cartModel.belongsTo(userModel, { foreignKey: "user_id" });
+
+cartModel.hasMany(cartItemModel, { foreignKey: "cart_id", as: "items" });
+cartItemModel.belongsTo(cartModel, { foreignKey: "cart_id" });
+
+cartItemModel.belongsTo(dishModel, { foreignKey: "dish_id", as: "dish" });
+dishModel.hasMany(cartItemModel, { foreignKey: "dish_id" });
