@@ -7,6 +7,8 @@ const {
     deleteAddress,
     setDefaultAddress,
 } = require("@services/addressService");
+const catchAsync = require("../utils/catchAsync");
+const AppError = require("../utils/AppError");
 
 class UserController {
     findUser = async (req, res) => {
@@ -227,16 +229,32 @@ class UserController {
     reorder = async (req, res) => {
         try {
             const userId = req.user.user_id;
-            const { id } = req.params;
-            const result = await require("@services/orderService").reorder(userId, id);
-            res.json(result);
-        } catch (error) {
-            res.status(500).json({
-                success: false,
-                message: error.message || "Failed to reorder items",
             });
         }
     };
+
+    // POST /orders - Place a new order
+    placeOrder = catchAsync(async (req, res, next) => {
+        const userId = req.user.user_id;
+        const orderData = req.body;
+
+        const result = await require("@services/orderService").createOrder(userId, orderData);
+        res.status(201).json({
+            success: true,
+            data: result,
+        });
+    });
+
+    // GET /orders/:id - Get single order details
+    getOrderDetails = catchAsync(async (req, res, next) => {
+        const userId = req.user.user_id;
+        const { id } = req.params;
+        const result = await require("@services/orderService").getOrderById(userId, id);
+        res.json({
+            success: true,
+            data: result,
+        });
+    });
 }
 
 module.exports = new UserController();

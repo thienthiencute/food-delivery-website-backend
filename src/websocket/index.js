@@ -507,6 +507,20 @@ const emitICECandidate = (io, recipientId, candidateData) => {
     });
 };
 
+/**
+ * Emit order updated status
+ * @param {SocketIO.Server} io - Socket.io server instance
+ * @param {string} userId - User ID who owns the order
+ * @param {object} orderData - Updated order data (order_id, status, etc.)
+ */
+const emitOrderUpdated = (io, userId, orderData) => {
+    const userRoom = `user:${userId}`;
+    io.to(userRoom).emit("order_updated", {
+        ...orderData,
+        timestamp: new Date().toISOString(),
+    });
+};
+
 module.exports = {
     initializeWebSocket,
     emitMessageToConversation,
@@ -527,4 +541,5 @@ module.exports = {
     emitOffer,
     emitAnswer,
     emitICECandidate,
+    emitOrderUpdated,
 };

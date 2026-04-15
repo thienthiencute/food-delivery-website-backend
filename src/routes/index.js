@@ -1,12 +1,4 @@
-const usersRouter = require("./userRouter");
-const authRouter = require("./authRouter");
-const dishRouter = require("./dishRouter");
-const cartRouter = require("./cartRouter");
-const voucherRouter = require("./voucherRouter");
-const categoryRouter = require("./categoryRouter");
-const uploadRoute = require("./upload");
-const chatRouter = require("./chatRouter");
-const callRouter = require("./callRouter");
+const adminRouter = require("./adminRouter");
 const { authAdminMiddleware, authMiddleware } = require("@middlewares/authMiddleware");
 
 const routes = (app) => {
@@ -19,6 +11,7 @@ const routes = (app) => {
     app.use("/api/cart", authMiddleware, cartRouter);
     app.use("/api/voucher", authMiddleware, voucherRouter);
     app.use("/api/calls", authMiddleware, callRouter);
+    app.use("/api/admin", adminRouter);
 };
 
 module.exports = routes;
