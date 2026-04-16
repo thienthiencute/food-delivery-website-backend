@@ -30,6 +30,16 @@ const orderItemModel = sequelize.define(
             type: DataTypes.INTEGER,
             allowNull: false,
         },
+        name: {
+            type: DataTypes.STRING(255),
+            allowNull: false,
+            comment: "Snapshot of dish name at order time",
+        },
+        price: {
+            type: DataTypes.DECIMAL(10, 2),
+            allowNull: false,
+            comment: "Snapshot of unit price at order time",
+        },
         created_at: {
             type: DataTypes.DATE,
             defaultValue: DataTypes.NOW,

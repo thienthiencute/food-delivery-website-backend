@@ -32,13 +32,15 @@ class cartController {
         if (!req.user) return next(new AppError("Unauthorized", 401));
 
         const userId = req.user.user_id;
-        const { dish_id, quantity } = req.body;
+        const { dishId, quantity } = req.body;
 
-        if (!dish_id || !quantity) {
-            return next(new AppError("Thiếu thông tin dish_id hoặc số lượng", 400));
+        console.log("🛒 REQ BODY:", req.body);
+
+        if (!dishId || !quantity) {
+            return next(new AppError("dishId is required", 400));
         }
 
-        const cartData = await cartService.addCartItem(userId, dish_id, parseInt(quantity));
+        const cartData = await cartService.addCartItem(userId, dishId, parseInt(quantity));
 
         res.status(200).json({
             success: true,

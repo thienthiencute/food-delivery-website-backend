@@ -95,14 +95,14 @@ CREATE TABLE Dishes (
     -- Media
     thumbnail_path VARCHAR(1000) NOT NULL,
     -- Pricing
-    price DECIMAL(10, 2) NOT NULL,
+    price DECIMAL(10, 2) NOT NULL CHECK (price >= 0),
     discount_amount DECIMAL(5,2) UNSIGNED NOT NULL DEFAULT 0,
     -- Stock & sales
-    stock INT DEFAULT 0,
-    sold_count INT DEFAULT 0,
+    stock INT NOT NULL DEFAULT 100 CHECK (stock >= 0),
+    sold_count INT NOT NULL DEFAULT 0 CHECK (sold_count >= 0),
     -- Rating
     rating_avg DECIMAL(2,1) DEFAULT 0,
-rating_count INT DEFAULT 0,
+	rating_count INT DEFAULT 0,
     -- Flags
     available BOOLEAN DEFAULT TRUE,
     is_featured BOOLEAN DEFAULT FALSE,
@@ -180,11 +180,13 @@ CREATE TABLE CartItems (
 	cart_item_id CHAR(36) PRIMARY KEY,
 	dish_id CHAR(36),
     cart_id CHAR(36),
+    price_snapshot DECIMAL(10,2) NOT NULL,
     quantity INT NOT NULL CHECK (quantity >= 0),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 	FOREIGN KEY (dish_id) REFERENCES Dishes(dish_id) ON DELETE CASCADE,
-    FOREIGN KEY (cart_id) REFERENCES Carts(cart_id) ON DELETE CASCADE
+    FOREIGN KEY (cart_id) REFERENCES Carts(cart_id) ON DELETE CASCADE,
+    UNIQUE (cart_id, dish_id) 
 );
 
 -- Create Orders table

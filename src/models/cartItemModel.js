@@ -8,9 +8,10 @@ const cartItemModel = sequelize.define(
             type: DataTypes.STRING(255),
             primaryKey: true,
         },
-        dish_id: {
+        dishId: {
             type: DataTypes.STRING(255),
             allowNull: false,
+            field: "dish_id",
             references: {
                 model: "Dishes",
                 key: "dish_id",
@@ -33,9 +34,10 @@ const cartItemModel = sequelize.define(
                 min: 0,
             },
         },
-        price_snapshot: {
+        priceSnapshot: {
             type: DataTypes.DECIMAL(10, 2),
             allowNull: false,
+            field: "price_snapshot",
             comment: "Snapshot of dish price at the time item was added to cart",
         },
         created_at: {
