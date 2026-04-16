@@ -61,6 +61,16 @@ const orderModel = sequelize.define(
             type: DataTypes.TEXT,
             allowNull: true,
         },
+        total_amount: {
+            type: DataTypes.DECIMAL(10, 2),
+            allowNull: false,
+            defaultValue: 0,
+        },
+        payment_status: {
+            type: DataTypes.ENUM("unpaid", "paid"),
+            allowNull: false,
+            defaultValue: "unpaid",
+        },
         order_date: {
             type: DataTypes.DATE,
             defaultValue: DataTypes.NOW,

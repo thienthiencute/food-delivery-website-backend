@@ -1,6 +1,7 @@
 const { v4: uuidv4 } = require("uuid");
 const { sequelize } = require("@config/sequelize");
-const { cartModel, cartItemModel, dishModel } = require("@models");
+const { cartModel, cartItemModel, dishModel, userModel } = require("@models");
+const AppError = require("@utils/AppError");
 
 /**
  * Get all cart items for a user, enriched with Dish details and computed totals.
@@ -48,7 +49,7 @@ const getCartItemsByUserId = async (user_id) => {
             (acc, item) => {
                 if (item.is_available && item.has_stock) {
                     acc.totalQuantity += item.quantity;
-                    acc.totalAmount += Number(item.price_snapshot) * item.quantity;
+                    acc.totalAmount += Number(item.priceSnapshot) * item.quantity;
                 }
                 return acc;
             },
@@ -67,55 +68,80 @@ const getCartItemsByUserId = async (user_id) => {
 
 /**
  * Add or increment item in cart with stock validation and transaction.
+ * Ensures user existence before any database modification.
  */
 const addCartItem = async (userId, dishId, quantity) => {
     const transaction = await sequelize.transaction();
+    
+    console.group("🛒 ADD TO CART FLOW");
+    console.log("Input:", { userId, dishId, quantity });
+
     try {
-        // 1. Ensure Cart exists
+        // 1. User validation (findOne as requested)
+        const user = await userModel.findOne({
+            where: { user_id: userId },
+            transaction
+        });
+
+        console.log("User found:", !!user);
+
+        if (!user) {
+            throw new AppError("User không tồn tại", 404);
+        }
+
+        // 2. Ensure Cart exists
         let cart = await cartModel.findOne({ where: { user_id: userId }, transaction });
         if (!cart) {
+            console.log("Creating new cart for user...");
             cart = await cartModel.create({ cart_id: uuidv4(), user_id: userId }, { transaction });
         }
 
-        // 2. Validate Dish
+        // 3. Validate Dish availability & stock
         const dish = await dishModel.findOne({ where: { dish_id: dishId }, transaction });
         if (!dish || dish.status !== "active" || !dish.available) {
-            throw new Error("Sản phẩm không khả dụng");
+            throw new AppError("Sản phẩm không khả dụng", 400);
         }
 
         if (dish.stock < quantity) {
-            throw new Error(`Chỉ còn ${dish.stock} sản phẩm trong kho`);
+            throw new AppError(`Chỉ còn ${dish.stock} sản phẩm trong kho`, 400);
         }
 
-        // 3. Check if exists
+        // 4. Add or Update CartItem
         const existingItem = await cartItemModel.findOne({
-            where: { cart_id: cart.cart_id, dish_id: dishId },
+            where: { cart_id: cart.cart_id, dishId: dishId },
             transaction,
         });
 
         if (existingItem) {
+            console.log("Item exists, updating quantity...");
             const newQuantity = existingItem.quantity + quantity;
             if (dish.stock < newQuantity) {
-                throw new Error(`Không thể thêm. Tổng số lượng vượt quá kho (${dish.stock})`);
+                throw new AppError(`Không thể thêm. Tổng số lượng vượt quá kho (${dish.stock})`, 400);
             }
-            await existingItem.update({ quantity: newQuantity, price_snapshot: dish.price }, { transaction });
+            await existingItem.update({ quantity: newQuantity, priceSnapshot: dish.price }, { transaction });
         } else {
+            console.log("Item is new, creating mapping...");
             await cartItemModel.create(
                 {
                     cart_item_id: uuidv4(),
                     cart_id: cart.cart_id,
-                    dish_id: dishId,
+                    dishId: dishId, // Correct property name
                     quantity,
-                    price_snapshot: dish.price,
+                    priceSnapshot: dish.price, // Correct property name
                 },
                 { transaction },
             );
         }
 
         await transaction.commit();
+        console.log("✅ TRANSACTION COMMITTED - Success");
+        console.groupEnd();
+        
         return await getCartItemsByUserId(userId);
     } catch (error) {
         await transaction.rollback();
+        console.error("❌ TRANSACTION FAILED - Rollback:", error.message);
+        console.groupEnd();
         throw error;
     }
 };
@@ -132,15 +158,15 @@ const updateCartItemQuantity = async (userId, cartItemId, quantity) => {
             transaction,
         });
 
-        if (!cartItem) throw new Error("Mục giỏ hàng không tồn tại");
+        if (!cartItem) throw new AppError("Mục giỏ hàng không tồn tại", 404);
 
         if (quantity > 0) {
             const dish = cartItem.dish;
             if (!dish || dish.status !== "active" || !dish.available) {
-                throw new Error("Sản phẩm không khả dụng");
+                throw new AppError("Sản phẩm không khả dụng", 400);
             }
             if (dish.stock < quantity) {
-                throw new Error(`Chỉ còn ${dish.stock} sản phẩm trong kho`);
+                throw new AppError(`Chỉ còn ${dish.stock} sản phẩm trong kho`, 400);
             }
             await cartItem.update({ quantity, price_snapshot: dish.price }, { transaction });
         } else {

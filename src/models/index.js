@@ -62,5 +62,5 @@ cartModel.belongsTo(userModel, { foreignKey: "user_id" });
 cartModel.hasMany(cartItemModel, { foreignKey: "cart_id", as: "items" });
 cartItemModel.belongsTo(cartModel, { foreignKey: "cart_id" });
 
-cartItemModel.belongsTo(dishModel, { foreignKey: "dish_id", as: "dish" });
-dishModel.hasMany(cartItemModel, { foreignKey: "dish_id" });
+cartItemModel.belongsTo(dishModel, { foreignKey: "dishId", as: "dish" });
+dishModel.hasMany(cartItemModel, { foreignKey: "dishId" });
