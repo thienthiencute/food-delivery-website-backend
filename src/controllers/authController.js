@@ -135,6 +135,8 @@ class authController {
       return res.status(200).json({
         success: true,
         message: "User login successfully",
+        accessToken: token,
+        user: user,
         redirect: "/",
       });
     } catch (error) {
@@ -199,6 +201,8 @@ class authController {
       return res.status(200).json({
         success: true,
         message: "User registered successfully",
+        accessToken: token,
+        user: user,
         redirect: "/",
       });
     } catch (error) {
@@ -234,14 +238,13 @@ class authController {
         memorizedLogin === "true"
           ? process.env.JWT_EXPIRES_IN_30D
           : process.env.JWT_EXPIRES_IN_1H;
-      const cookieMaxAge =
-        memorizedLogin === "true"
-          ? process.env.COOKIE_MAX_AGE_30D
-          : process.env.COOKIE_MAX_AGE_1H;
       const token = generateJWT(user, jwtExpiresIn); // create token
-      res.cookie("token", token, { maxAge: parseInt(cookieMaxAge) }); // send token to the client
-      res.clearCookie("memorizedLogin");
-      return res.json({ success: true, message: "Login successful!" });
+      return res.json({ 
+        success: true, 
+        message: "Login successful!",
+        accessToken: token,
+        user: user
+      });
     } catch (error) {
       console.log(error);
     }
@@ -364,8 +367,6 @@ class authController {
 
   async logoutUser(req, res) {
     try {
-      res.clearCookie("token");
-      res.clearCookie("memorizedLogin");
       return res.status(200).json({ success: true, message: "Logged out successfully" });
     } catch (error) {
       console.log("LOGOUT ERROR:", error);

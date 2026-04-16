@@ -1,8 +1,6 @@
 const { v4: uuidv4 } = require("uuid");
 const { sequelize } = require("@config/sequelize");
-const cartModel = require("@models/cartModel");
-const cartItemModel = require("@models/cartItemModel");
-const dishModel = require("@models/dishModel");
+const { cartModel, cartItemModel, dishModel } = require("@models");
 
 /**
  * Get all cart items for a user, enriched with Dish details and computed totals.

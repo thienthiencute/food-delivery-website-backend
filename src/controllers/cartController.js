@@ -1,107 +1,107 @@
-const { getCartItemsByUserId } = require("@services/cartService");
-const { jwtDecode } = require("jwt-decode");
-
-const { updateCartItemQuantity, deleteCartItem } = require("@services/cartService");
+const cartService = require("@services/cartService");
+const catchAsync = require("@utils/catchAsync");
+const AppError = require("@utils/AppError");
 
 class cartController {
     /**
      * GET /api/cart
+     * Returns user's cart enriched with dish details and computed totals
      */
-    async getCart(req, res) {
-        try {
-            const userId = req.user.user_id;
-            const cartData = await cartService.getCartItemsByUserId(userId);
-            res.status(200).json({ success: true, data: cartData });
-        } catch (error) {
-            res.status(500).json({ success: false, message: error.message });
+    getCart = catchAsync(async (req, res, next) => {
+        // Guard: Prevent crash if req.user is missing
+        if (!req.user || !req.user.user_id) {
+            return next(new AppError("Bạn cần đăng nhập để xem giỏ hàng", 401));
         }
-    }
-     /**
-     * GET /api/cart/items
-     */
-    getCartItems = async (req, res, next) => {
-    try {
+
         const userId = req.user.user_id;
+        console.log("DEBUG: Fetching cart for user:", userId);
 
-        const cartItems = await cartItemModel.findAll({
-        where: { user_id: userId },
-        });
+        const cartData = await cartService.getCartItemsByUserId(userId);
 
-        return res.json({
-        success: true,
-        data: cartItems,
+        res.status(200).json({
+            success: true,
+            data: cartData,
         });
-    } catch (err) {
-        console.error("❌ getCartItems error:", err); 
-        next(err);
-    }
-    }
+    });
+
     /**
      * POST /api/cart/items
+     * Add or increment item in cart
      */
-    async addItem(req, res) {
-        try {
-            const userId = req.user.user_id;
-            const { dish_id, quantity } = req.body;
+    addItem = catchAsync(async (req, res, next) => {
+        if (!req.user) return next(new AppError("Unauthorized", 401));
 
-            if (!dish_id || !quantity) {
-                return res.status(400).json({ success: false, message: "Missing dish_id or quantity" });
-            }
+        const userId = req.user.user_id;
+        const { dish_id, quantity } = req.body;
 
-            const cartData = await cartService.addCartItem(userId, dish_id, parseInt(quantity));
-            res.status(200).json({ success: true, data: cartData });
-        } catch (error) {
-            res.status(400).json({ success: false, message: error.message });
+        if (!dish_id || !quantity) {
+            return next(new AppError("Thiếu thông tin dish_id hoặc số lượng", 400));
         }
-    }
+
+        const cartData = await cartService.addCartItem(userId, dish_id, parseInt(quantity));
+
+        res.status(200).json({
+            success: true,
+            data: cartData,
+        });
+    });
 
     /**
      * PUT /api/cart/items/:id
+     * Update quantity of a cart item
      */
-    async updateItem(req, res) {
-        try {
-            const userId = req.user.user_id;
-            const cartItemId = req.params.id;
-            const { quantity } = req.body;
+    updateItem = catchAsync(async (req, res, next) => {
+        if (!req.user) return next(new AppError("Unauthorized", 401));
 
-            if (quantity === undefined) {
-                return res.status(400).json({ success: false, message: "Missing quantity" });
-            }
+        const userId = req.user.user_id;
+        const cartItemId = req.params.id;
+        const { quantity } = req.body;
 
-            const cartData = await cartService.updateCartItemQuantity(userId, cartItemId, parseInt(quantity));
-            res.status(200).json({ success: true, data: cartData });
-        } catch (error) {
-            res.status(400).json({ success: false, message: error.message });
+        if (quantity === undefined) {
+            return next(new AppError("Thiếu thông tin số lượng", 400));
         }
-    }
+
+        const cartData = await cartService.updateCartItemQuantity(userId, cartItemId, parseInt(quantity));
+
+        res.status(200).json({
+            success: true,
+            data: cartData,
+        });
+    });
 
     /**
      * DELETE /api/cart/items/:id
+     * Remove single item from cart
      */
-    async deleteItem(req, res) {
-        try {
-            const userId = req.user.user_id;
-            const cartItemId = req.params.id;
+    deleteItem = catchAsync(async (req, res, next) => {
+        if (!req.user) return next(new AppError("Unauthorized", 401));
 
-            const cartData = await cartService.deleteCartItem(userId, cartItemId);
-            res.status(200).json({ success: true, data: cartData });
-        } catch (error) {
-            res.status(400).json({ success: false, message: error.message });
-        }
-    }
+        const userId = req.user.user_id;
+        const cartItemId = req.params.id;
+
+        const cartData = await cartService.deleteCartItem(userId, cartItemId);
+
+        res.status(200).json({
+            success: true,
+            data: cartData,
+        });
+    });
 
     /**
      * DELETE /api/cart/items/clear
+     * Empty entire cart
      */
-    async clearCart(req, res) {
-        try {
-            const userId = req.user.user_id;
-            const cartData = await cartService.clearCartByUserId(userId);
-            res.status(200).json({ success: true, data: cartData });
-        } catch (error) {
-            res.status(500).json({ success: false, message: error.message });
-        }
-    }
+    clearCart = catchAsync(async (req, res, next) => {
+        if (!req.user) return next(new AppError("Unauthorized", 401));
+
+        const userId = req.user.user_id;
+        const cartData = await cartService.clearCartByUserId(userId);
+
+        res.status(200).json({
+            success: true,
+            data: cartData,
+        });
+    });
 }
 
 module.exports = new cartController();

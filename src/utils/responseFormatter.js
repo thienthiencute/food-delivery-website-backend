@@ -12,7 +12,7 @@ function toCamelCase(obj) {
 
     const camelCaseObj = {};
     for (const key in obj) {
-        if (obj.hasOwnProperty(key)) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
             const camelKey = key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
             const value = obj[key];
 
