@@ -4,42 +4,105 @@ const { jwtDecode } = require("jwt-decode");
 const { updateCartItemQuantity, deleteCartItem } = require("@services/cartService");
 
 class cartController {
-    async getCartItems(req, res) {
-        const { token } = req.cookies;
-        const { user_id } = jwtDecode(token);
+    /**
+     * GET /api/cart
+     */
+    async getCart(req, res) {
+        try {
+            const userId = req.user.user_id;
+            const cartData = await cartService.getCartItemsByUserId(userId);
+            res.status(200).json({ success: true, data: cartData });
+        } catch (error) {
+            res.status(500).json({ success: false, message: error.message });
+        }
+    }
+     /**
+     * GET /api/cart/items
+     */
+    getCartItems = async (req, res, next) => {
+    try {
+        const userId = req.user.user_id;
 
-        const cartItems = await getCartItemsByUserId(user_id);
+        const cartItems = await cartItemModel.findAll({
+        where: { user_id: userId },
+        });
 
-        console.log("🐸  cartItems:", cartItems);
+        return res.json({
+        success: true,
+        data: cartItems,
+        });
+    } catch (err) {
+        console.error("❌ getCartItems error:", err); 
+        next(err);
+    }
+    }
+    /**
+     * POST /api/cart/items
+     */
+    async addItem(req, res) {
+        try {
+            const userId = req.user.user_id;
+            const { dish_id, quantity } = req.body;
 
-        res.json(cartItems);
+            if (!dish_id || !quantity) {
+                return res.status(400).json({ success: false, message: "Missing dish_id or quantity" });
+            }
+
+            const cartData = await cartService.addCartItem(userId, dish_id, parseInt(quantity));
+            res.status(200).json({ success: true, data: cartData });
+        } catch (error) {
+            res.status(400).json({ success: false, message: error.message });
+        }
     }
 
-    async updateQuantity(req, res) {
-        const { cartItemId, quantity } = req.body;
+    /**
+     * PUT /api/cart/items/:id
+     */
+    async updateItem(req, res) {
+        try {
+            const userId = req.user.user_id;
+            const cartItemId = req.params.id;
+            const { quantity } = req.body;
 
-        if (!cartItemId) {
-            return res.status(400).json({ success: false, message: "Missing cart item ID field" });
+            if (quantity === undefined) {
+                return res.status(400).json({ success: false, message: "Missing quantity" });
+            }
+
+            const cartData = await cartService.updateCartItemQuantity(userId, cartItemId, parseInt(quantity));
+            res.status(200).json({ success: true, data: cartData });
+        } catch (error) {
+            res.status(400).json({ success: false, message: error.message });
         }
-
-        if (quantity === null) {
-            return res.status(400).json({ success: false, message: "Missing quantity field" });
-        }
-
-        await updateCartItemQuantity(cartItemId, quantity);
-        res.status(200).json({ success: true, message: "Update cart item quantity successfully" });
     }
 
-    async deleteCartItem(req, res) {
-        const cartItemId = req.params.id;
+    /**
+     * DELETE /api/cart/items/:id
+     */
+    async deleteItem(req, res) {
+        try {
+            const userId = req.user.user_id;
+            const cartItemId = req.params.id;
 
-        if (!cartItemId) {
-            return res.status(400).json({ success: false, message: "Missing cart item id field" });
+            const cartData = await cartService.deleteCartItem(userId, cartItemId);
+            res.status(200).json({ success: true, data: cartData });
+        } catch (error) {
+            res.status(400).json({ success: false, message: error.message });
         }
+    }
 
-        await deleteCartItem(cartItemId);
-        res.status(200).json({ success: true, message: "Cart item deleted" });
+    /**
+     * DELETE /api/cart/items/clear
+     */
+    async clearCart(req, res) {
+        try {
+            const userId = req.user.user_id;
+            const cartData = await cartService.clearCartByUserId(userId);
+            res.status(200).json({ success: true, data: cartData });
+        } catch (error) {
+            res.status(500).json({ success: false, message: error.message });
+        }
     }
 }
 
 module.exports = new cartController();
+

@@ -10,10 +10,13 @@ class AdminController {
 
         const updatedOrder = await OrderService.updateOrderStatus(id, status);
         
+        // Fetch lightweight summary for enriched socket payload
+        const summary = await OrderService.getOrderSummary(id);
+
         // Notify the user in real-time via their personal room
         emitOrderUpdated(io, updatedOrder.account_id, {
-            order_id: updatedOrder.order_id,
-            status: updatedOrder.order_status,
+            ...summary,
+            updatedAt: new Date().toISOString(),
         });
 
         res.json({
@@ -29,3 +32,4 @@ class AdminController {
 }
 
 module.exports = new AdminController();
+

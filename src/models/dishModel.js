@@ -21,6 +21,12 @@ const dishModel = sequelize.define(
             type: DataTypes.STRING(255),
             allowNull: false,
         },
+        brand: {
+            type: DataTypes.STRING(100),
+            allowNull: true,
+            defaultValue: null,
+            comment: "Fast-food brand name (KFC, Highlands Coffee, etc.)",
+        },
         slug: {
             type: DataTypes.STRING(255),
             allowNull: false,

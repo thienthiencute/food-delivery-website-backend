@@ -24,6 +24,18 @@ const orderModel = sequelize.define(
             type: DataTypes.TEXT,
             allowNull: false,
         },
+        brand: {
+            type: DataTypes.STRING(100),
+            allowNull: false,
+            defaultValue: "Eatsy",
+            comment: "Snapshot of brand at order creation time",
+        },
+        estimated_time: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            defaultValue: null,
+            comment: "Estimated delivery time in minutes",
+        },
         order_note: {
             type: DataTypes.TEXT,
             allowNull: true,

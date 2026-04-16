@@ -1,98 +1,54 @@
 const cartController = require("@controllers/cartController");
 const express = require("express");
 const router = express.Router();
+const { authMiddleware } = require("@middlewares/authMiddleware");
+
+// All cart routes require authentication
+router.use(authMiddleware);
 
 /**
  * @swagger
- * /api/cart/cart:
+ * /api/cart:
  *   get:
- *     summary: Get cart items
- *     tags:
- *       - Cart
- *     security:
- *       - BearerAuth: []
- *     responses:
- *       200:
- *         description: Cart items retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: integer
- *                       dish_id:
- *                         type: integer
- *                       quantity:
- *                         type: integer
- *                       dish:
- *                         $ref: '#/components/schemas/Dish'
- *       401:
- *         description: Unauthorized
+ *     summary: Get cart details and items
+ *     tags: [Cart]
  */
-router.get("/cart", cartController.getCartItems);
+router.get("/", cartController.getCart);
 
 /**
  * @swagger
- * /api/cart/update-quantity:
+ * /api/cart/items:
+ *   post:
+ *     summary: Add item to cart
+ *     tags: [Cart]
+ */
+router.post("/items", cartController.addItem);
+
+/**
+ * @swagger
+ * /api/cart/items/{id}:
  *   put:
  *     summary: Update cart item quantity
- *     tags:
- *       - Cart
- *     security:
- *       - BearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               cart_item_id:
- *                 type: integer
- *               quantity:
- *                 type: integer
- *     responses:
- *       200:
- *         description: Cart item quantity updated successfully
- *       400:
- *         description: Invalid input
- *       401:
- *         description: Unauthorized
+ *     tags: [Cart]
  */
-router.put("/update-quantity", cartController.updateQuantity);
+router.put("/items/:id", cartController.updateItem);
 
 /**
  * @swagger
- * /api/cart/delete-item/{id}:
+ * /api/cart/items/{id}:
  *   delete:
- *     summary: Delete cart item
- *     tags:
- *       - Cart
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Cart item ID
- *     responses:
- *       200:
- *         description: Cart item deleted successfully
- *       404:
- *         description: Cart item not found
- *       401:
- *         description: Unauthorized
+ *     summary: Remove single item from cart
+ *     tags: [Cart]
  */
-router.delete("/delete-item/:id", cartController.deleteCartItem);
+router.delete("/items/:id", cartController.deleteItem);
+
+/**
+ * @swagger
+ * /api/cart/items/clear:
+ *   delete:
+ *     summary: Clear entire cart
+ *     tags: [Cart]
+ */
+router.delete("/items/clear", cartController.clearCart);
 
 module.exports = router;

@@ -1,4 +1,13 @@
 const adminRouter = require("./adminRouter");
+const chatRouter = require("./chatRouter");
+const dishRouter = require("./dishRouter");
+const uploadRoute = require("./upload");
+const authRouter = require("./authRouter");
+const categoryRouter = require("./categoryRouter");
+const usersRouter = require("./userRouter");
+const cartRouter = require("./cartRouter");
+const voucherRouter = require("./voucherRouter");
+const callRouter = require("./callRouter");
 const { authAdminMiddleware, authMiddleware } = require("@middlewares/authMiddleware");
 
 const routes = (app) => {

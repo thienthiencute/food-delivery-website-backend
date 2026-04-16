@@ -90,6 +90,7 @@ CREATE TABLE Dishes (
     -- Basic info
     name VARCHAR(255) NOT NULL,
     slug VARCHAR(255) UNIQUE NOT NULL,
+    brand VARCHAR(100) NULL,
     description TEXT,
     -- Media
     thumbnail_path VARCHAR(1000) NOT NULL,
@@ -116,6 +117,9 @@ rating_count INT DEFAULT 0,
 
     FOREIGN KEY (category_id) REFERENCES Categories(category_id) ON DELETE CASCADE
 );
+
+ALTER TABLE Dishes 
+ADD COLUMN brand VARCHAR(100) NULL;
 CREATE TABLE DishImages (
     image_id CHAR(36) PRIMARY KEY,
     dish_id CHAR(36),

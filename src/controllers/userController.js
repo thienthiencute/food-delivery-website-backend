@@ -229,6 +229,15 @@ class UserController {
     reorder = async (req, res) => {
         try {
             const userId = req.user.user_id;
+            const { id } = req.params;
+            const OrderService = require("@services/orderService");
+            const result = await OrderService.reorder(userId, id);
+            
+            res.status(200).json(result);
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: error.message || "Failed to reorder items",
             });
         }
     };

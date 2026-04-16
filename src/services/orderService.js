@@ -30,12 +30,18 @@ const OrderService = {
                     order_id: plainOrder.order_id,
                     date: plainOrder.order_date,
                     status: plainOrder.order_status,
+                    brand: plainOrder.brand || "Eatsy",
+                    estimated_time: plainOrder.estimated_time,
                     total_amount: plainOrder.items.reduce(
                         (sum, item) => sum + item.quantity * (item.dish?.price || 0),
                         0,
                     ),
                     payment_method: plainOrder.payment_method,
                     delivery_address: plainOrder.delivery_address,
+                    items_preview: plainOrder.items.map((item) => ({
+                        name: item.dish?.name || "Unknown Dish",
+                        quantity: item.quantity,
+                    })),
                     items: plainOrder.items.map((item) => ({
                         dish_id: item.dish_id,
                         name: item.dish?.name || "Unknown Dish",
@@ -164,6 +170,16 @@ const OrderService = {
                 throw new AppError("Một số món ăn không còn khả dụng hoặc không tồn tại", 400);
             }
 
+            // 3. Enforce single-brand cart rule
+            const brands = [...new Set(dishes.map(d => d.brand || "Eatsy"))];
+            if (brands.length > 1) {
+                throw new AppError(
+                    `Không thể đặt hàng từ nhiều thương hiệu cùng lúc. Giỏ hàng chứa: ${brands.join(", ")}`,
+                    400,
+                );
+            }
+            const orderBrand = brands[0];
+
             // Map items with real prices
             const validatedItems = items.map(item => {
                 const dish = dishes.find(d => d.dish_id === item.dish_id);
@@ -171,10 +187,17 @@ const OrderService = {
                     ...item,
                     name: dish.name,
                     price: dish.price,
+                    preparation_time: dish.preparation_time || 0,
                 };
             });
 
-            // 3. Create the Order
+            // 4. Compute estimated delivery time
+            // Base delivery time (15 min) + max preparation time across items
+            const BASE_DELIVERY_MINUTES = 15;
+            const maxPrepTime = Math.max(...validatedItems.map(i => i.preparation_time), 0);
+            const estimatedTime = BASE_DELIVERY_MINUTES + maxPrepTime;
+
+            // 5. Create the Order
             const orderId = uuidv4();
             const newOrder = await orderModel.create(
                 {
@@ -182,6 +205,8 @@ const OrderService = {
                     account_id: userId,
                     quantity: validatedItems.reduce((acc, i) => acc + i.quantity, 0),
                     foods: validatedItems.map((i) => `${i.name} x${i.quantity}`).join(", "),
+                    brand: orderBrand,
+                    estimated_time: estimatedTime,
                     order_note: note,
                     order_status: "pending",
                     address_id,
@@ -191,7 +216,7 @@ const OrderService = {
                 { transaction: t },
             );
 
-            // 4. Create Order Items
+            // 6. Create Order Items
             const orderItems = validatedItems.map((item) => ({
                 order_item_id: uuidv4(),
                 order_id: orderId,
@@ -201,7 +226,7 @@ const OrderService = {
 
             await orderItemModel.bulkCreate(orderItems, { transaction: t });
 
-            // 5. Remove items from Cart
+            // 7. Remove items from Cart
             const cart = await cartModel.findOne({ where: { user_id: userId } });
             if (cart) {
                 await cartItemModel.destroy({
@@ -216,7 +241,9 @@ const OrderService = {
             await t.commit();
             return {
                 order_id: orderId,
-                total_amount: validatedItems.reduce((acc, i) => acc + (i.price * i.quantity), 0)
+                brand: orderBrand,
+                estimated_time: estimatedTime,
+                total_amount: validatedItems.reduce((acc, i) => acc + (i.price * i.quantity), 0),
             };
         } catch (error) {
             if (t) await t.rollback();
@@ -261,12 +288,18 @@ const OrderService = {
             return {
                 order_id: plainOrder.order_id,
                 status: plainOrder.order_status,
+                brand: plainOrder.brand || "Eatsy",
+                estimated_time: plainOrder.estimated_time,
                 total_amount: plainOrder.items.reduce(
                     (sum, item) => sum + item.quantity * (item.dish?.price || 0),
                     0,
                 ),
                 delivery_address: plainOrder.delivery_address,
                 created_at: plainOrder.order_date,
+                items_preview: plainOrder.items.map((item) => ({
+                    name: item.dish?.name || "Unknown Dish",
+                    quantity: item.quantity,
+                })),
                 items: plainOrder.items.map((item) => ({
                     name: item.dish?.name || "Unknown Dish",
                     quantity: item.quantity,
@@ -302,6 +335,58 @@ const OrderService = {
             return order;
         } catch (error) {
             console.error("Error updating order status:", error);
+            throw error;
+        }
+    },
+
+    /**
+     * Lightweight order summary for socket emission.
+     * Fetches only the fields needed for real-time UI updates.
+     */
+    getOrderSummary: async (orderId) => {
+        try {
+            const order = await orderModel.findOne({
+                where: { order_id: orderId },
+                attributes: ["order_id", "order_status", "brand", "estimated_time", "order_date"],
+                include: [
+                    {
+                        model: orderItemModel,
+                        as: "items",
+                        attributes: ["quantity"],
+                        include: [
+                            {
+                                model: dishModel,
+                                as: "dish",
+                                attributes: ["name", "price"],
+                            },
+                        ],
+                    },
+                ],
+            });
+
+            if (!order) {
+                const error = new Error("Order not found");
+                error.status = 404;
+                throw error;
+            }
+
+            const plainOrder = order.get({ plain: true });
+            return {
+                order_id: plainOrder.order_id,
+                status: plainOrder.order_status,
+                brand: plainOrder.brand || "Eatsy",
+                estimated_time: plainOrder.estimated_time,
+                total_amount: plainOrder.items.reduce(
+                    (sum, item) => sum + item.quantity * (item.dish?.price || 0),
+                    0,
+                ),
+                items_preview: plainOrder.items.map((item) => ({
+                    name: item.dish?.name || "Unknown Dish",
+                    quantity: item.quantity,
+                })),
+            };
+        } catch (error) {
+            console.error("Error fetching order summary:", error);
             throw error;
         }
     },
