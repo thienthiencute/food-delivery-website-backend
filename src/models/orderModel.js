@@ -24,6 +24,18 @@ const orderModel = sequelize.define(
             type: DataTypes.TEXT,
             allowNull: false,
         },
+        brand: {
+            type: DataTypes.STRING(100),
+            allowNull: false,
+            defaultValue: "Eatsy",
+            comment: "Snapshot of brand at order creation time",
+        },
+        estimated_time: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            defaultValue: null,
+            comment: "Estimated delivery time in minutes",
+        },
         order_note: {
             type: DataTypes.TEXT,
             allowNull: true,
@@ -31,9 +43,23 @@ const orderModel = sequelize.define(
         order_status: {
             type: DataTypes.STRING(20),
             allowNull: false,
+            defaultValue: "pending",
             validate: {
-                isIn: [["Pending", "In Progress", "Completed", "Cancelled"]],
+                isIn: [["pending", "confirmed", "delivering", "delivered", "cancelled"]],
             },
+        },
+        address_id: {
+            type: DataTypes.STRING(255),
+            allowNull: true,
+        },
+        payment_method: {
+            type: DataTypes.STRING(100),
+            allowNull: true,
+            defaultValue: "Cash",
+        },
+        delivery_address: {
+            type: DataTypes.TEXT,
+            allowNull: true,
         },
         order_date: {
             type: DataTypes.DATE,

@@ -1,45 +1,108 @@
-const { getCartItemsByUserId } = require("@services/cartService");
-const { jwtDecode } = require("jwt-decode");
-
-const { updateCartItemQuantity, deleteCartItem } = require("@services/cartService");
+const cartService = require("@services/cartService");
+const catchAsync = require("@utils/catchAsync");
+const AppError = require("@utils/AppError");
 
 class cartController {
-    async getCartItems(req, res) {
-        const { token } = req.cookies;
-        const { user_id } = jwtDecode(token);
-
-        const cartItems = await getCartItemsByUserId(user_id);
-
-        console.log("🐸  cartItems:", cartItems);
-
-        res.json(cartItems);
-    }
-
-    async updateQuantity(req, res) {
-        const { cartItemId, quantity } = req.body;
-
-        if (!cartItemId) {
-            return res.status(400).json({ success: false, message: "Missing cart item ID field" });
+    /**
+     * GET /api/cart
+     * Returns user's cart enriched with dish details and computed totals
+     */
+    getCart = catchAsync(async (req, res, next) => {
+        // Guard: Prevent crash if req.user is missing
+        if (!req.user || !req.user.user_id) {
+            return next(new AppError("Bạn cần đăng nhập để xem giỏ hàng", 401));
         }
 
-        if (quantity === null) {
-            return res.status(400).json({ success: false, message: "Missing quantity field" });
+        const userId = req.user.user_id;
+        console.log("DEBUG: Fetching cart for user:", userId);
+
+        const cartData = await cartService.getCartItemsByUserId(userId);
+
+        res.status(200).json({
+            success: true,
+            data: cartData,
+        });
+    });
+
+    /**
+     * POST /api/cart/items
+     * Add or increment item in cart
+     */
+    addItem = catchAsync(async (req, res, next) => {
+        if (!req.user) return next(new AppError("Unauthorized", 401));
+
+        const userId = req.user.user_id;
+        const { dish_id, quantity } = req.body;
+
+        if (!dish_id || !quantity) {
+            return next(new AppError("Thiếu thông tin dish_id hoặc số lượng", 400));
         }
 
-        await updateCartItemQuantity(cartItemId, quantity);
-        res.status(200).json({ success: true, message: "Update cart item quantity successfully" });
-    }
+        const cartData = await cartService.addCartItem(userId, dish_id, parseInt(quantity));
 
-    async deleteCartItem(req, res) {
+        res.status(200).json({
+            success: true,
+            data: cartData,
+        });
+    });
+
+    /**
+     * PUT /api/cart/items/:id
+     * Update quantity of a cart item
+     */
+    updateItem = catchAsync(async (req, res, next) => {
+        if (!req.user) return next(new AppError("Unauthorized", 401));
+
+        const userId = req.user.user_id;
+        const cartItemId = req.params.id;
+        const { quantity } = req.body;
+
+        if (quantity === undefined) {
+            return next(new AppError("Thiếu thông tin số lượng", 400));
+        }
+
+        const cartData = await cartService.updateCartItemQuantity(userId, cartItemId, parseInt(quantity));
+
+        res.status(200).json({
+            success: true,
+            data: cartData,
+        });
+    });
+
+    /**
+     * DELETE /api/cart/items/:id
+     * Remove single item from cart
+     */
+    deleteItem = catchAsync(async (req, res, next) => {
+        if (!req.user) return next(new AppError("Unauthorized", 401));
+
+        const userId = req.user.user_id;
         const cartItemId = req.params.id;
 
-        if (!cartItemId) {
-            return res.status(400).json({ success: false, message: "Missing cart item id field" });
-        }
+        const cartData = await cartService.deleteCartItem(userId, cartItemId);
 
-        await deleteCartItem(cartItemId);
-        res.status(200).json({ success: true, message: "Cart item deleted" });
-    }
+        res.status(200).json({
+            success: true,
+            data: cartData,
+        });
+    });
+
+    /**
+     * DELETE /api/cart/items/clear
+     * Empty entire cart
+     */
+    clearCart = catchAsync(async (req, res, next) => {
+        if (!req.user) return next(new AppError("Unauthorized", 401));
+
+        const userId = req.user.user_id;
+        const cartData = await cartService.clearCartByUserId(userId);
+
+        res.status(200).json({
+            success: true,
+            data: cartData,
+        });
+    });
 }
 
 module.exports = new cartController();
+

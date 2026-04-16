@@ -5,35 +5,54 @@ const categoryModel = require("@models/categoryModel");
 
 class dishController {
   async getDishes(req, res) {
-    const searchCondition = {};
-    const { name, sort, category } = req.query;
-
-    if (name) {
-      searchCondition.name = { [Op.like]: `%${name}%` };
-    }
-
-    if (category) {
-      const categoryRecord = await categoryModel.findOne({
-        where: { name: category },
-      });
-      if (!categoryRecord) {
-        return res.status(404).json({ message: "Category not found" });
-      }
-      searchCondition.category_id = categoryRecord.category_id;
-    }
-
     try {
+      const { dishModel, categoryModel } = require("@models");
+      const { Op } = require("sequelize");
+      
+      const searchCondition = {};
+      const { name, sort, category } = req.query;
+
+      if (name) {
+        searchCondition.name = { [Op.like]: `%${name}%` };
+      }
+
+      if (category) {
+        const categoryRecord = await categoryModel.findOne({
+          where: { name: category },
+        });
+        
+        if (!categoryRecord) {
+          return res.status(404).json({ 
+            success: false, 
+            message: "Category not found" 
+          });
+        }
+        searchCondition.category_id = categoryRecord.category_id;
+      }
+
       const dishes = await dishModel.findAll({
         where: searchCondition,
         order: [["price", sort || "ASC"]],
       });
+
       if (!dishes || dishes.length === 0) {
-        return res.status(404).json({ message: "No dishes found" });
+        return res.status(404).json({ 
+          success: false, 
+          message: "No dishes found" 
+        });
       }
-      res.status(200).json(dishes);
+
+      return res.status(200).json({
+        success: true,
+        data: dishes
+      });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("Error in getDishes:", error);
+      return res.status(500).json({ 
+        success: false, 
+        error: "Internal server error",
+        message: error.message 
+      });
     }
   }
 

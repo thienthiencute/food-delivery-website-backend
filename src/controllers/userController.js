@@ -7,6 +7,8 @@ const {
     deleteAddress,
     setDefaultAddress,
 } = require("@services/addressService");
+const catchAsync = require("../utils/catchAsync");
+const AppError = require("../utils/AppError");
 
 class UserController {
     findUser = async (req, res) => {
@@ -188,7 +190,7 @@ class UserController {
         }
     };
 
-    // PUT /addresses/:id/default - Set default address
+    // GET /addresses/:id/default - Set default address
     setDefaultAddress = async (req, res) => {
         try {
             const userId = req.user.user_id;
@@ -205,6 +207,63 @@ class UserController {
             });
         }
     };
+
+    // GET /orders - Get user order history
+    getOrders = async (req, res) => {
+        try {
+            const userId = req.user.user_id;
+            const orders = await require("@services/orderService").getUserOrders(userId);
+            res.json({
+                success: true,
+                data: orders,
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: error.message || "Failed to fetch orders",
+            });
+        }
+    };
+
+    // POST /orders/:id/reorder - Add items from a past order to cart
+    reorder = async (req, res) => {
+        try {
+            const userId = req.user.user_id;
+            const { id } = req.params;
+            const OrderService = require("@services/orderService");
+            const result = await OrderService.reorder(userId, id);
+            
+            res.status(200).json(result);
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: error.message || "Failed to reorder items",
+            });
+        }
+    };
+
+    // POST /orders - Place a new order
+    placeOrder = catchAsync(async (req, res, next) => {
+        const userId = req.user.user_id;
+        const orderData = req.body;
+
+        const result = await require("@services/orderService").createOrder(userId, orderData);
+        res.status(201).json({
+            success: true,
+            data: result,
+        });
+    });
+
+    // GET /orders/:id - Get single order details
+    getOrderDetails = catchAsync(async (req, res, next) => {
+        const userId = req.user.user_id;
+        const { id } = req.params;
+        const result = await require("@services/orderService").getOrderById(userId, id);
+        res.json({
+            success: true,
+            data: result,
+        });
+    });
 }
 
 module.exports = new UserController();

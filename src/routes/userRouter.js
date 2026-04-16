@@ -271,5 +271,114 @@ router.delete("/addresses/:id", authMiddleware, userController.deleteAddress);
  *         description: Address not found
  */
 router.put("/addresses/:id/default", authMiddleware, userController.setDefaultAddress);
++
++/**
++ * @swagger
++ * /api/user/orders:
++ *   get:
++ *     summary: Get user order history
++ *     tags:
++ *       - User - Orders
++ *     security:
++ *       - BearerAuth: []
++ *     responses:
++ *       200:
++ *         description: Orders retrieved successfully
++ *       401:
++ *         description: Unauthorized
++ */
++router.get("/orders", authMiddleware, userController.getOrders);
+
+/**
+ * @swagger
+ * /api/user/orders/{id}:
+ *   get:
+ *     summary: Get single order details
+ *     tags:
+ *       - User - Orders
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Order details retrieved successfully
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Order not found
+ */
+router.get("/orders/:id", authMiddleware, userController.getOrderDetails);
++
++/**
++ * @swagger
++ * /api/user/orders/{id}/reorder:
++ *   post:
++ *     summary: Reorder items from a past order
++ *     tags:
++ *       - User - Orders
++ *     security:
++ *       - BearerAuth: []
++ *     parameters:
++ *       - in: path
++ *         name: id
++ *         required: true
++ *         schema:
++ *           type: string
++ *     responses:
++ *       200:
++ *         description: Items added to cart successfully
++ *       404:
++ *         description: Order not found
++ */
++router.post("/orders/:id/reorder", authMiddleware, userController.reorder);
+
+const { body } = require("express-validator");
+const validate = require("../middlewares/validate");
+
+/**
+ * @swagger
+ * /api/user/orders:
+ *   post:
+ *     summary: Place a new order
+ *     tags:
+ *       - User - Orders
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               items:
+ *                 type: array
+ *               address_id:
+ *                 type: string
+ *               payment_method:
+ *                 type: string
+ *               note:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Order placed successfully
+ */
+router.post(
+    "/orders",
+    authMiddleware,
+    [
+        body("address_id").notEmpty().withMessage("Vui lòng chọn địa chỉ giao hàng"),
+        body("items").isArray({ min: 1 }).withMessage("Giỏ hàng không được để trống"),
+        body("items.*.dish_id").notEmpty().withMessage("Thiếu mã món ăn"),
+        body("items.*.quantity").isInt({ min: 1 }).withMessage("Số lượng phải lớn hơn 0"),
+    ],
+    validate,
+    userController.placeOrder,
+);
 
 module.exports = router;

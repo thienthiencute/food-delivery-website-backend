@@ -33,6 +33,11 @@ const cartItemModel = sequelize.define(
                 min: 0,
             },
         },
+        price_snapshot: {
+            type: DataTypes.DECIMAL(10, 2),
+            allowNull: false,
+            comment: "Snapshot of dish price at the time item was added to cart",
+        },
         created_at: {
             type: DataTypes.DATE,
             defaultValue: DataTypes.NOW,

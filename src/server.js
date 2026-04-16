@@ -28,6 +28,10 @@ app.use(
 // routing
 routes(app);
 
+// Global Error Handler
+const errorHandler = require("./middlewares/errorHandler");
+app.use(errorHandler);
+
 // Store io instance globally for services to access
 app.set("io", null);
 
