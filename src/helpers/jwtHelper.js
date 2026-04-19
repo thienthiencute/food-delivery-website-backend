@@ -1,21 +1,38 @@
 const { jwtDecode } = require("jwt-decode");
 const jwt = require("jsonwebtoken");
+
+const getPayload = (user) => {
+    // Safely extract values from Sequelize instance or plain object
+    const userId = user?.dataValues?.userId || user?.userId || user?.dataValues?.user_id || user?.user_id;
+    const username = user?.dataValues?.username || user?.username;
+    const role = user?.dataValues?.role || user?.role;
+    
+    return { 
+        user_id: userId, 
+        username: username, 
+        role: role 
+    };
+};
+
 const generateJWT = (user, expiresIn) => {
     const jwtSecretKey = process.env.JWT_SECRET || process.env.JWT_SECRET_KEY;
+    const payload = getPayload(user);
+    return jwt.sign(payload, jwtSecretKey, { expiresIn: expiresIn || "1h" });
+};
 
-    const token = jwt.sign(
-        { 
-            user_id: user.userId || user.user_id, 
-            username: user.username, 
-            role: user.role 
-        },
-        jwtSecretKey,
-        {
-            expiresIn: expiresIn || "1h",
-        },
-    );
-
-    return token;
+const generateTokens = (user) => {
+    const accessSecret = process.env.JWT_SECRET || process.env.JWT_SECRET_KEY;
+    const refreshSecret = process.env.JWT_REFRESH_SECRET;
+    
+    const accessExpires = process.env.JWT_EXPIRES_IN || "15m";
+    const refreshExpires = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
+    
+    const payload = getPayload(user);
+    
+    const accessToken = jwt.sign(payload, accessSecret, { expiresIn: accessExpires });
+    const refreshToken = jwt.sign(payload, refreshSecret, { expiresIn: refreshExpires });
+    
+    return { accessToken, refreshToken };
 };
 
 const getCookie = (name) => {
@@ -29,5 +46,6 @@ const getCookie = (name) => {
 };
 
 module.exports = {
-    generateJWT,
+    generateJWT, // kept for backward compatibility if needed elsewhere temporarily
+    generateTokens,
 };

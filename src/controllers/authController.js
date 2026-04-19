@@ -15,7 +15,7 @@ const {
   getUserByEmail,
   changePassword,
 } = require("@services/userService");
-const { generateJWT } = require("@helpers/jwtHelper");
+const { generateJWT, generateTokens } = require("@helpers/jwtHelper");
 const { regexVietnamPhoneNumber, regexEmail } = require("@constants/constants");
 const { sendEmail } = require("@config/nodemailer");
 
@@ -128,14 +128,15 @@ class authController {
           ? process.env.COOKIE_MAX_AGE_30D
           : process.env.COOKIE_MAX_AGE_1H;
 
-      const token = generateJWT(user, jwtExpiresIn);
+      const tokens = generateTokens(user);
 
-      res.cookie("token", token, { maxAge: parseInt(cookieMaxAge) });
+      res.cookie("token", tokens.accessToken, { maxAge: parseInt(cookieMaxAge) });
 
       return res.status(200).json({
         success: true,
         message: "User login successfully",
-        accessToken: token,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
         user: user,
         redirect: user.role === "Admin" ? "/admin" : "/",
       });
@@ -194,14 +195,15 @@ class authController {
           ? process.env.COOKIE_MAX_AGE_30D
           : process.env.COOKIE_MAX_AGE_1H;
 
-      const token = generateJWT(user, jwtExpiresIn);
+      const tokens = generateTokens(user);
 
-      res.cookie("token", token, { maxAge: parseInt(cookieMaxAge) });
+      res.cookie("token", tokens.accessToken, { maxAge: parseInt(cookieMaxAge) });
 
       return res.status(200).json({
         success: true,
         message: "User registered successfully",
-        accessToken: token,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
         user: user,
         redirect: user.role === "Admin" ? "/admin" : "/",
       });
@@ -375,6 +377,47 @@ class authController {
     } catch (error) {
       console.log("LOGOUT ERROR:", error);
       return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+  }
+  async refreshToken(req, res) {
+    try {
+      const { refreshToken } = req.body;
+      
+      if (!refreshToken) {
+        return res.status(401).json({ success: false, message: "Refresh Token is required" });
+      }
+
+      console.log("REFRESH TOKEN USED");
+
+      const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET;
+      
+      const jwt = require("jsonwebtoken");
+      const decoded = jwt.verify(refreshToken, jwtRefreshSecret);
+      
+      // decoded will contain user_id, username, role
+      // generate new access token (only access token using access secret)
+      const accessSecret = process.env.JWT_SECRET || process.env.JWT_SECRET_KEY;
+      const accessExpires = process.env.JWT_EXPIRES_IN || "15m";
+      
+      const newAccessToken = jwt.sign(
+        {
+          user_id: decoded.user_id,
+          username: decoded.username,
+          role: decoded.role
+        },
+        accessSecret,
+        { expiresIn: accessExpires }
+      );
+      
+      console.log("TOKEN REFRESHED");
+
+      return res.status(200).json({
+        success: true,
+        accessToken: newAccessToken
+      });
+    } catch (error) {
+      console.log("REFRESH TOKEN ERROR:", error.message);
+      return res.status(401).json({ success: false, message: "Invalid or expired refresh token" });
     }
   }
 }
