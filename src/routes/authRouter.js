@@ -202,6 +202,16 @@ router.post("/verify-otp", authController.verifyOTP);
 
 /**
  * @swagger
+ * /api/auth/refresh:
+ *   post:
+ *     summary: Refresh access token using refresh token
+ *     tags:
+ *       - Authentication
+ */
+router.post("/refresh", authController.refreshToken);
+
+/**
+ * @swagger
  * /api/auth/login-user:
  *   post:
  *     summary: Login user with email and password

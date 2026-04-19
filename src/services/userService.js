@@ -72,7 +72,7 @@ const createUser = async (username, type_login, country_code, phone_number, pass
 
 const updateProfile = async (userId, updateData, avatarFile = null) => {
     try {
-        const allowedFields = ["fullname", "phoneNumber", "gender", "dateOfBirth", "paymentMethodId", "avatarPath"];
+        const allowedFields = ["fullname", "phoneNumber", "gender", "dateOfBirth", "paymentMethodId", "avatarPath", "email"];
         const updateObj = {};
 
         for (const field of allowedFields) {

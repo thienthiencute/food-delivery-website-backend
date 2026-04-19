@@ -19,10 +19,9 @@ const authMiddleware = (req, res, next) => {
     jwt.verify(token, jwtSecretKey, (err, decoded) => {
         if (err) {
             console.log("JWT VERIFY ERROR:", err.message);
-            return res.status(403).json({ success: false, message: "Invalid or expired token" });
+            return res.status(401).json({ success: false, message: "Invalid or expired token" });
         }
 
-        // ✅ DEBUG LOGS
         console.log("DECODED USER:", decoded);
 
         req.user = {
@@ -54,7 +53,7 @@ const authAdminMiddleware = (req, res, next) => {
     jwt.verify(token, jwtSecretKey, (err, decoded) => {
         if (err) {
             console.log("JWT VERIFY ERROR:", err.message);
-            return res.status(403).json({ success: false, message: "Invalid or expired token" });
+            return res.status(401).json({ success: false, message: "Invalid or expired token" });
         }
 
         // ✅ DEBUG LOGS
