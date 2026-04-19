@@ -9,11 +9,11 @@ class cartController {
      */
     getCart = catchAsync(async (req, res, next) => {
         // Guard: Prevent crash if req.user is missing
-        if (!req.user || !req.user.username) {
+        if (!req.user || !req.user.user_id) {
             return res.status(401).json({ message: "Unauthorized" });
         }
 
-        const userId = req.user.username;
+        const userId = req.user.user_id;
         console.log("DEBUG: Fetching cart for user:", userId);
 
         const cartData = await cartService.getCartItemsByUserId(userId);
@@ -29,11 +29,11 @@ class cartController {
      * Add or increment item in cart
      */
     addItem = catchAsync(async (req, res, next) => {
-        if (!req.user || !req.user.username) {
+        if (!req.user || !req.user.user_id) {
             return res.status(401).json({ message: "Unauthorized" });
         }
 
-        const userId = req.user.username;
+        const userId = req.user.user_id;
         const { dishId, quantity } = req.body;
 
         console.log("🛒 REQ BODY:", req.body);
@@ -55,11 +55,11 @@ class cartController {
      * Update quantity of a cart item
      */
     updateItem = catchAsync(async (req, res, next) => {
-        if (!req.user || !req.user.username) {
+        if (!req.user || !req.user.user_id) {
             return res.status(401).json({ message: "Unauthorized" });
         }
 
-        const userId = req.user.username;
+        const userId = req.user.user_id;
         const cartItemId = req.params.id;
         const { quantity } = req.body;
 
@@ -80,11 +80,11 @@ class cartController {
      * Remove single item from cart
      */
     deleteItem = catchAsync(async (req, res, next) => {
-        if (!req.user || !req.user.username) {
+        if (!req.user || !req.user.user_id) {
             return res.status(401).json({ message: "Unauthorized" });
         }
 
-        const userId = req.user.username;
+        const userId = req.user.user_id;
         const cartItemId = req.params.id;
 
         const cartData = await cartService.deleteCartItem(userId, cartItemId);
@@ -100,11 +100,11 @@ class cartController {
      * Empty entire cart
      */
     clearCart = catchAsync(async (req, res, next) => {
-        if (!req.user || !req.user.username) {
+        if (!req.user || !req.user.user_id) {
             return res.status(401).json({ message: "Unauthorized" });
         }
 
-        const userId = req.user.username;
+        const userId = req.user.user_id;
         const cartData = await cartService.clearCartByUserId(userId);
 
         res.status(200).json({
