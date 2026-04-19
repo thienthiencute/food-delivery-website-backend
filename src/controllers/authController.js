@@ -137,7 +137,7 @@ class authController {
         message: "User login successfully",
         accessToken: token,
         user: user,
-        redirect: "/",
+        redirect: user.role === "Admin" ? "/admin" : "/",
       });
     } catch (error) {
       console.log("LOGIN ERROR:", error);
@@ -203,7 +203,7 @@ class authController {
         message: "User registered successfully",
         accessToken: token,
         user: user,
-        redirect: "/",
+        redirect: user.role === "Admin" ? "/admin" : "/",
       });
     } catch (error) {
       console.log("REGISTER ERROR:", error);
@@ -224,7 +224,11 @@ class authController {
         });
       }
 
-      const userId = req.user.id;
+      const userId = req.user.user_id;
+
+      // ✅ DEBUG LOGS
+      console.log("LOGIN STATUS userId:", userId);
+
       const user = await getUserById(userId);
       const { memorizedLogin } = req.cookies;
 
@@ -355,10 +359,10 @@ class authController {
         .json({ success: false, message: "Not found user" });
     }
 
-    const { user_id } = user;
+    const userId = user.userId || user.user_id;
     const newPasswordHashed = await hashData(newPassword);
 
-    await changePassword(user_id, newPasswordHashed);
+    await changePassword(userId, newPasswordHashed);
 
     res
       .status(200)

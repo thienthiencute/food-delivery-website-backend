@@ -6,7 +6,7 @@ const CallService = require("@services/callService");
  */
 const initiateCall = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.username;
         const { recipientId, conversationId, callType } = req.body;
 
         if (!recipientId || !conversationId || !callType) {
@@ -191,7 +191,7 @@ const getCallHistory = async (req, res) => {
  */
 const getActiveCalls = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.username;
 
         const calls = await CallService.getActiveCallsForUser(userId);
 

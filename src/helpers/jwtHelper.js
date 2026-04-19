@@ -1,26 +1,17 @@
 const { jwtDecode } = require("jwt-decode");
 const jwt = require("jsonwebtoken");
 const generateJWT = (user, expiresIn) => {
-    const {
-        user_id,
-        username,
-        fullname,
-        email,
-        country_code,
-        phone_number,
-        address,
-        avatar_path,
-        date_of_birth,
-        role,
-    } = user;
-
-    const jwtSecretKey = process.env.JWT_SECRET_KEY;
+    const jwtSecretKey = process.env.JWT_SECRET || process.env.JWT_SECRET_KEY;
 
     const token = jwt.sign(
-        { user_id, username, fullname, email, country_code, phone_number, address, avatar_path, date_of_birth, role },
+        { 
+            user_id: user.userId || user.user_id, 
+            username: user.username, 
+            role: user.role 
+        },
         jwtSecretKey,
         {
-            expiresIn,
+            expiresIn: expiresIn || "1h",
         },
     );
 

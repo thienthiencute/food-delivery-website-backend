@@ -4,7 +4,7 @@ const { uploadToS3 } = require("@config/multer");
 // Get user's conversations
 const getConversations = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.username;
         const { limit = 20, cursor } = req.query;
 
         const result = await ChatService.getUserConversations(userId, parseInt(limit), cursor);
@@ -51,7 +51,7 @@ const getConversationsByUserId = async (req, res) => {
 // Get or create 1-to-1 conversation
 const getOrCreateDirectConversation = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.username;
         const { participantId } = req.body;
 
         if (!participantId) {
@@ -78,7 +78,7 @@ const getOrCreateDirectConversation = async (req, res) => {
 // Create group conversation
 const createGroupConversation = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.username;
         const { name, participantIds } = req.body;
         let avatarPath = null;
 
@@ -118,7 +118,7 @@ const createGroupConversation = async (req, res) => {
 // Get conversation details
 const getConversationDetails = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.username;
         const { conversationId } = req.body;
 
         if (!conversationId) {
@@ -145,7 +145,7 @@ const getConversationDetails = async (req, res) => {
 // Get messages in conversation
 const getMessages = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.username;
         const { conversationId, limit = 50, cursor } = req.body;
 
         if (!conversationId) {
@@ -172,7 +172,7 @@ const getMessages = async (req, res) => {
 // Send message
 const sendMessage = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.username;
         const { conversationId } = req.params;
         const { content, type = "text", mentions = [], replyToId } = req.body;
         const io = req.app.get("io");
@@ -265,7 +265,7 @@ const sendMessage = async (req, res) => {
 // Edit message
 const editMessage = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.username;
         const { conversationId, messageId } = req.params;
         const { content } = req.body;
         const io = req.app.get("io");
@@ -300,7 +300,7 @@ const editMessage = async (req, res) => {
 // Delete message
 const deleteMessage = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.username;
         const { conversationId, messageId } = req.params;
         const io = req.app.get("io");
 
@@ -327,7 +327,7 @@ const deleteMessage = async (req, res) => {
 // Recall message (within 5 minutes)
 const recallMessage = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.username;
         const { conversationId, messageId } = req.params;
         const io = req.app.get("io");
 
@@ -355,7 +355,7 @@ const recallMessage = async (req, res) => {
 // Mark messages as read
 const markMessagesAsRead = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.username;
         const { conversationId } = req.params;
         const { messageIds } = req.body;
 
@@ -383,7 +383,7 @@ const markMessagesAsRead = async (req, res) => {
 // Mark entire conversation as read
 const markConversationAsRead = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.username;
         const { conversationId } = req.params;
 
         const result = await ChatService.markConversationAsRead(userId, conversationId);
@@ -403,7 +403,7 @@ const markConversationAsRead = async (req, res) => {
 // Add reaction to message
 const addReaction = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.username;
         const { conversationId, messageId } = req.params;
         const { emoji } = req.body;
         const io = req.app.get("io");
@@ -443,7 +443,7 @@ const addReaction = async (req, res) => {
 // Remove reaction from message
 const removeReaction = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.username;
         const { conversationId, messageId } = req.params;
         const { emoji } = req.body;
         const io = req.app.get("io");
@@ -483,7 +483,7 @@ const removeReaction = async (req, res) => {
 // Add member to group
 const addMemberToGroup = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.username;
         const { conversationId } = req.params;
         const { memberId } = req.body;
         const io = req.app.get("io");
@@ -521,7 +521,7 @@ const addMemberToGroup = async (req, res) => {
 // Remove member from group
 const removeMemberFromGroup = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.username;
         const { conversationId } = req.params;
         const { memberId } = req.body;
         const io = req.app.get("io");
@@ -556,7 +556,7 @@ const removeMemberFromGroup = async (req, res) => {
 // Update conversation settings
 const updateConversationSettings = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.username;
         const { conversationId } = req.params;
         const { isMuted, isPinned } = req.body;
 
@@ -580,7 +580,7 @@ const updateConversationSettings = async (req, res) => {
 // Update conversation (name/avatar)
 const updateConversation = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.username;
         const { conversationId } = req.params;
         const { name } = req.body;
 
@@ -622,7 +622,7 @@ const updateConversation = async (req, res) => {
 // Delete conversation (archive)
 const deleteConversation = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.username;
         const { conversationId } = req.params;
 
         const result = await ChatService.deleteConversation(userId, conversationId);

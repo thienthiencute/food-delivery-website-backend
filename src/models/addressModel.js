@@ -5,17 +5,19 @@ const User = require("@models/userModel");
 const Address = sequelize.define(
   "Address",
   {
-    address_id: {
+    addressId: {
       type: DataTypes.STRING(255),
       primaryKey: true,
+      field: "address_id",
     },
-    user_id: {
+    userId: {
       type: DataTypes.STRING(255),
       allowNull: false,
       references: {
         model: "Users",
         key: "user_id",
       },
+      field: "user_id",
     },
     street: {
       type: DataTypes.STRING(500),
@@ -27,7 +29,10 @@ const Address = sequelize.define(
     },
     ward: DataTypes.STRING(255),
     district: DataTypes.STRING(255),
-    zip_code: DataTypes.STRING(20),
+    zipCode: {
+      type: DataTypes.STRING(20),
+      field: "zip_code",
+    },
     country: {
       type: DataTypes.STRING(100),
       defaultValue: "Vietnam",
@@ -36,17 +41,16 @@ const Address = sequelize.define(
       type: DataTypes.ENUM('Home', 'Work', 'Other'),
       defaultValue: "Home",
     },
-    is_default: {
+    isDefault: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
+      field: "is_default",
     },
     latitude: DataTypes.DECIMAL(10, 8),
     longitude: DataTypes.DECIMAL(11, 8),
   },
   {
     tableName: "Addresses",
-    timestamps: true,
-    underscored: false,
   },
 );
 
