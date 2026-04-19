@@ -6,7 +6,7 @@ const { addressModel, userModel } = require("@models");
 const getUserByPhoneNumber = async (countryCode, phoneNumber) => {
     try {
         const user = await userModel.findOne({
-            where: { country_code: countryCode, phone_number: phoneNumber },
+            where: { countryCode: countryCode, phoneNumber: phoneNumber },
         });
         return user;
     } catch (error) {
@@ -33,7 +33,7 @@ const getProfile = async (userId) => {
                 {
                     model: addressModel,
                     as: "addresses",
-                    attributes: { exclude: ["user_id"] },
+                    attributes: { exclude: ["userId"] },
                 },
             ],
         });
@@ -48,7 +48,7 @@ const getProfile = async (userId) => {
 
 const getUserById = async (userId) => {
     try {
-        const user = await userModel.findOne({ where: { user_id: userId } });
+        const user = await userModel.findOne({ where: { userId: userId } });
         return user?.dataValues;
     } catch (error) {
         throw error;
@@ -59,9 +59,9 @@ const createUser = async (username, type_login, country_code, phone_number, pass
     try {
         const newUser = await userModel.create({
             username,
-            type_login,
-            phone_number,
-            country_code,
+            typeLogin: type_login,
+            phoneNumber: phone_number,
+            countryCode: country_code,
             password,
         });
         return newUser;
@@ -72,7 +72,7 @@ const createUser = async (username, type_login, country_code, phone_number, pass
 
 const updateProfile = async (userId, updateData, avatarFile = null) => {
     try {
-        const allowedFields = ["fullname", "phone_number", "gender", "date_of_birth", "payment_method", "avatar_path"];
+        const allowedFields = ["fullname", "phoneNumber", "gender", "dateOfBirth", "paymentMethodId", "avatarPath"];
         const updateObj = {};
 
         for (const field of allowedFields) {
@@ -82,12 +82,12 @@ const updateProfile = async (userId, updateData, avatarFile = null) => {
         }
 
         // Handle legacy avatar file upload (local storage)
-        if (avatarFile && !updateData.avatar_path) {
-            updateObj.avatar_path = `/uploads/avatars/${avatarFile.filename}`;
+        if (avatarFile && !updateData.avatarPath) {
+            updateObj.avatarPath = `/uploads/avatars/${avatarFile.filename}`;
         }
 
         const [updatedCount] = await userModel.update(updateObj, {
-            where: { user_id: userId },
+            where: { userId: userId },
             returning: true,
         });
 
@@ -116,7 +116,7 @@ const changePassword = async (userId, oldPassword, newPassword) => {
 
         const newPasswordHashed = await bcrypt.hash(newPassword, 10);
 
-        await userModel.update({ password: newPasswordHashed }, { where: { user_id: userId } });
+        await userModel.update({ password: newPasswordHashed }, { where: { userId: userId } });
 
         return { message: "Password changed successfully" };
     } catch (error) {
@@ -128,7 +128,7 @@ const findUser = async (query) => {
     try {
         const user = await userModel.findOne({
             where: {
-                [Op.or]: [{ email: query }, { phone_number: query }, { fullname: query }, { username: query }],
+                [Op.or]: [{ email: query }, { phoneNumber: query }, { fullname: query }, { username: query }],
             },
         });
         if (!user) {

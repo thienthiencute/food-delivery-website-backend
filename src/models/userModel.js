@@ -4,63 +4,68 @@ const { sequelize } = require("@config/sequelize");
 const User = sequelize.define(
   "User",
   {
-    user_id: {
+    userId: {
       type: DataTypes.STRING(255),
       primaryKey: true,
+      field: "user_id",
     },
     fullname: DataTypes.STRING(255),
     gender: DataTypes.ENUM("Male", "Female", "Other"),
-    date_of_birth: DataTypes.DATE,
+    dateOfBirth: {
+      type: DataTypes.DATE,
+      field: "date_of_birth",
+    },
     password: {
       type: DataTypes.STRING(255),
       allowNull: false,
     },
     username: DataTypes.STRING(255),
-    type_login: {
+    typeLogin: {
       type: DataTypes.ENUM("Standard", "Google", "Facebook", "Apple"),
       allowNull: false,
       defaultValue: "Standard",
+      field: "type_login",
     },
     email: {
       type: DataTypes.STRING(255),
       unique: true,
     },
-    phone_number: {
+    phoneNumber: {
       type: DataTypes.STRING(20),
       allowNull: false,
       unique: true,
+      field: "phone_number",
     },
-    country_code: {
+    countryCode: {
       type: DataTypes.STRING(10),
       allowNull: false,
+      field: "country_code",
     },
     role: {
       type: DataTypes.ENUM("Admin", "Customer", "Owner", "Employee"),
       defaultValue: "Customer",
     },
-    avatar_path: DataTypes.STRING(1000),
-    payment_method_id: {
+    avatarPath: {
+      type: DataTypes.STRING(1000),
+      field: "avatar_path",
+    },
+    paymentMethodId: {
       type: DataTypes.INTEGER,
       allowNull: true,
+      field: "payment_method_id",
     },
-    created_at: {
+    lastLogin: {
       type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
+      field: "last_login",
     },
-    updated_at: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
-      onUpdate: DataTypes.NOW,
-    },
-    last_login: DataTypes.DATE,
-    is_online: {
+    isOnline: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
+      field: "is_online",
     },
   },
   {
     tableName: "Users",
-    timestamps: false,
   },
 );
 

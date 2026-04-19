@@ -37,7 +37,18 @@ class UserController {
     // GET /profile - Get user profile with addresses
     getProfile = async (req, res) => {
         try {
-            const userId = req.user.user_id; // From authMiddleware
+            const userId = req.user?.user_id;
+            
+            // ✅ DEBUG LOGS
+            console.log("PROFILE userId:", userId);
+
+            if (!userId) {
+                return res.status(401).json({
+                    success: false,
+                    message: "User ID missing from request",
+                });
+            }
+
             const profile = await getProfile(userId);
             res.json({
                 success: true,

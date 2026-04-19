@@ -8,11 +8,11 @@ class orderController {
      * Create order from the current user's cart (COD Only)
      */
     createOrderFromCart = catchAsync(async (req, res, next) => {
-        if (!req.user || !req.user.user_id) {
+        if (!req.user || !req.user.username) {
             return next(new AppError("Bạn cần đăng nhập để thực hiện thanh toán", 401));
         }
 
-        const userId = req.user.user_id;
+        const userId = req.user.username;
         const { address_id, note } = req.body;
 
         if (!address_id) {
@@ -36,7 +36,7 @@ class orderController {
      * Get all orders of current user
      */
     getMyOrders = catchAsync(async (req, res, next) => {
-        const userId = req.user.user_id;
+        const userId = req.user.username;
         const orders = await orderService.getUserOrders(userId);
 
         res.status(200).json({
@@ -50,7 +50,7 @@ class orderController {
      * Get specific order detail
      */
     getOrderDetail = catchAsync(async (req, res, next) => {
-        const userId = req.user.user_id;
+        const userId = req.user.username;
         const orderId = req.params.id;
 
         const order = await orderService.getOrderById(userId, orderId);
@@ -66,7 +66,7 @@ class orderController {
      * Reorder items from a past order
      */
     reorder = catchAsync(async (req, res, next) => {
-        const userId = req.user.user_id;
+        const userId = req.user.username;
         const orderId = req.params.id;
 
         const results = await orderService.reorder(userId, orderId);
