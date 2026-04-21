@@ -62,13 +62,13 @@ class UserController {
         }
     };
 
-    // PUT /profile - Update profile (name, phone, avatar)
+    // PUT /profile - Update profile (strict requirements)
     updateProfile = async (req, res) => {
         try {
-            const userId = req.user.user_id;
+            const userId = req.user.id; // Using .id as requested 
             let avatarUrl = null;
 
-            // Upload avatar to S3 if provided
+            // 1. Handle S3 Upload if file provided
             if (req.file) {
                 try {
                     avatarUrl = await uploadToS3(req.file, "profiles");
@@ -81,12 +81,13 @@ class UserController {
                 }
             }
 
-            // Prepare update data with S3 URL
+            // 2. Prepare update data (mapping avatarPath if uploaded)
             const updateData = {
                 ...req.body,
-                ...(avatarUrl && { avatar_path: avatarUrl }),
+                ...(avatarUrl && { avatarPath: avatarUrl }),
             };
 
+            // 3. Update via hardened service
             const profile = await updateProfile(userId, updateData);
 
             res.json({
