@@ -147,24 +147,60 @@ const AddressService = {
     }
   },
 
-  // Set default address (resets others for user)
+  // Set default address (guarantees exactly one default)
   setDefaultAddress: async (userId, addressId) => {
+    if (!addressId || addressId === "undefined") {
+      throw new Error("Address ID is required");
+    }
+
+    const t = await sequelize.transaction();
     try {
-      // Reset all defaults for user
+      // 1. Lock user row to serialize address operations for this user
+      await userModel.findByPk(userId, {
+        transaction: t,
+        lock: t.LOCK.UPDATE,
+      });
+
+      // 2. Verify existence and ownership
+      const address = await addressModel.findOne({
+        where: { addressId, userId },
+        transaction: t,
+      });
+
+      if (!address) {
+        throw new Error("Address not found");
+      }
+
+      // 3. Single Atomic Update: Set targeted address to true, all others to false
+      // using a boolean expression in SQL.
       await addressModel.update(
-        { isDefault: false },
-        { where: { userId: userId } }
+        {
+          isDefault: sequelize.literal(`address_id = '${addressId}'`),
+        },
+        {
+          where: { userId },
+          transaction: t,
+        }
       );
 
-      // Set new default if specified
-      if (addressId) {
-        await addressModel.update(
-          { isDefault: true },
-          { where: { addressId: addressId, userId: userId } }
-        );
+      // 4. Invariant Safety Check
+      const count = await addressModel.count({
+        where: { userId, isDefault: true },
+        transaction: t,
+      });
+
+      if (count !== 1) {
+        throw new Error("Invariant violated: must have exactly 1 default address");
       }
-      return true;
+
+      // 5. Return fresh data
+      const updated = await addressModel.findByPk(addressId, { transaction: t });
+      
+      await t.commit();
+      return updated;
     } catch (error) {
+      if (t) await t.rollback();
+      console.error("SET DEFAULT ADDRESS FAILED:", error);
       throw error;
     }
   },
